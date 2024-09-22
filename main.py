@@ -3,7 +3,6 @@ import pathlib
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pylab
 
 from GUI import get_files#, get_gui
 

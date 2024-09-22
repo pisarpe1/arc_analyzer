@@ -1,10 +1,9 @@
 import tkinter
 from tkinter import Tk
 from tkinter.filedialog import askopenfilenames
-from typing import Any, Literal
 
 
-def get_files() -> Literal[""] | tuple[str, ...] | list[Any]:
+def get_files():
     Tk().withdraw()
     filenames = askopenfilenames()
 
