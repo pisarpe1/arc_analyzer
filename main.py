@@ -273,6 +273,8 @@ if __name__ == '__main__':
     paths = get_files()
     result2(paths)
 
+    # pyinstaller --onefile --hidden-import tkinter hello.py
+
     # frek = 100Hz
     # osciloskop 10 dilku na obrazovce x
     # hlavicka 7 , 13, 15, 16, 20, 24
