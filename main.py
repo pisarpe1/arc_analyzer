@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pylab
 
+from GUI import get_files#, get_gui
+
 PATHTOFILES = pathlib.Path("csv_files/")
 
 
@@ -40,7 +42,7 @@ def thresholding_algo(y):
                 stdFilter = np.asarray(stdFilter))
 
 
-def smooth_moving_window(l, window_len=99, include_edges='On'):
+def smooth_moving_window(l, window_len=51, include_edges='On'):
         if window_len % 2 == 0:
             raise ValueError('>window_len< kwarg in function >smooth_moving_window< must be odd')
 
@@ -73,7 +75,7 @@ def smooth_moving_window(l, window_len=99, include_edges='On'):
 
 
 def get_pulse(voltage_vals: list[float]):
-    dic = thresholding_algo(voltage_vals)
+    #dic = thresholding_algo(voltage_vals)
     pulse_interval: list = []
 
     for val in voltage_vals:
@@ -110,20 +112,21 @@ def get_pulse(voltage_vals: list[float]):
     return intervals
 
 
-def load_files():
-    files_path = []
-    for child in PATHTOFILES.iterdir():
-        files_path.append(child)
+def load_files(paths):
+    files_path = paths
+
+    """for child in PATHTOFILES.iterdir():
+        files_path.append(child)"""
 
     data_dict: dict = {}
 
     for file_path in files_path:
         with (open(file_path, newline="") as csvfile):
-            print(csvfile.name)
             reader = csv.reader(csvfile, delimiter=" ", quotechar="|")
             list_of = enumerate(reader)
             full_name = csvfile.name.split('\\')[-1][0:-4]
             name = full_name.split('\\')[-1][0:-1]
+            name =name.split('/')[-1]
             if name in data_dict.keys():
                 dictval = data_dict[name]
             else:
@@ -169,6 +172,8 @@ def data_filter(data_dict_in):
     data_dict = data_dict_in
 
     for key in data_dict.keys():
+        data_dict[key]['time_shift'] = [0] * len(data_dict[key]['time'])
+
         # filtr sumu  vystrelky hodnot
         values_cur = data_dict[key]['current']
         values_vol = data_dict[key]['voltage']
@@ -198,13 +203,11 @@ def data_filter(data_dict_in):
         data_dict[key]['pulse_ranges'] = rng
         data_dict[key]['pulse_number'] = len(rng)
 
-
-
     return data_dict
 
 
-def result2():
-    data_dict_raw = load_files()
+def result2(paths):
+    data_dict_raw = load_files(paths)
     data_dict = data_filter(data_dict_raw)
     data_dict = volt_in_intervals(data_dict)
 
@@ -212,6 +215,7 @@ def result2():
         time = data_dict[key]['time']
         current = data_dict[key]['current']
 
+        inter_0_3 = 0
         inter_0_50 = 0
         inter_50_80 = 0
         inter_80_120 = 0
@@ -219,31 +223,56 @@ def result2():
 
         for interval in data_dict[key]['pulse_curr_in_ranges']:
             max_val = max(interval)
-            if max_val <= 50:
-                inter_0_50 += 1
-            elif max_val <= 80:
-                inter_50_80 += 1
-            elif max_val <= 120:
-                inter_80_120 += 1
-            else:
-                inter_more_120 += 1
+            if max_val > 0:
+                if max_val <= 50:
+                    inter_0_50 += 1
+                elif max_val <= 80:
+                    inter_50_80 += 1
+                elif max_val <= 120:
+                    inter_80_120 += 1
+                else:
+                    inter_more_120 += 1
+            elif max_val < 3:
+                inter_0_3 += 1
 
-        print(f"{key}\n \tnumbers of peaks: {len(data_dict[key]['pulse_curr_in_ranges'])}\n \t0-50:{inter_0_50}\n \t50-80:{inter_50_80}\n \t80-120:{inter_80_120}\n \t120+:{inter_more_120}")
+        current_peaks = inter_0_3 + inter_0_50 + inter_50_80 + inter_80_120 + inter_more_120
+
+        print(f"{key}\n \tdetected volt peaks: {len(data_dict[key]['pulse_curr_in_ranges'])} "
+              f"\n \t0-3:\t{inter_0_3}"
+              f"\n \t3-50:\t{inter_0_50}"
+              f"\n \t50-80:\t{inter_50_80}"
+              f"\n \t80-120:\t{inter_80_120}"
+              f"\n \t120+:\t{inter_more_120}"
+              f"\n \tdetected peaks \t{current_peaks}")
 
         for xc in data_dict[key]['pulse_ranges']:
 
-            plt.axvline(x=data_dict[key]['time'][xc['start']], color='green', ls=':')
-            plt.axvline(x=data_dict[key]['time'][xc['end']], color='red', ls=':')
+            plt.axvline(x=data_dict[key]['time'][xc['start']], color='green', ls=':', linewidth=0.5)
+            plt.axvline(x=data_dict[key]['time'][xc['end']], color='red', ls=':', linewidth=0.5)
 
-        plt.plot(time, current, 'o')
+        for yc in [3, 50, 80, 120]:
+
+            plt.axhline(y=yc, color='tan')
+
+        plt.text(min(data_dict[key]['time']), 0, inter_0_3, fontsize=15)
+        plt.text(min(data_dict[key]['time']), 25, inter_0_50, fontsize=15)
+        plt.text(min(data_dict[key]['time']), 65, inter_50_80, fontsize=15)
+        plt.text(min(data_dict[key]['time']), 100, inter_80_120, fontsize=15)
+        plt.text(min(data_dict[key]['time']), 130, inter_more_120, fontsize=15)
+
+        # plt.plot(time, current, 'o')
         plt.plot(time, current)
-        plt.plot(time, abs(data_dict[key]['voltage_fit']))
+        # plt.plot(data_dict[key]['time'], data_dict[key]['voltage'])
+        # plt.plot(data_dict[key]['time'], data_dict[key]['voltage_fit'])
+        plt.title(f'{key} '
+                  f'\nvolt peaks: {len(data_dict[key]['pulse_curr_in_ranges'])}; current peaks: {current_peaks}')
         plt.show()
 
 
 if __name__ == '__main__':
     print('runing')
-    result2()
+    paths = get_files()
+    result2(paths)
 
     # frek = 100Hz
     # osciloskop 10 dilku na obrazovce x
