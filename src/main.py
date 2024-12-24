@@ -4,7 +4,8 @@ import pathlib
 import matplotlib.pyplot as plt
 import numpy as np
 
-from GUI import get_files#, get_gui
+from GUI import get_files
+from load_files.load_csv import LoadCSVs, load_files
 
 PATHTOFILES = pathlib.Path("csv_files/")
 
@@ -111,47 +112,7 @@ def get_pulse(voltage_vals: list[float]):
     return intervals
 
 
-def load_files(paths):
-    files_path = paths
 
-    """for child in PATHTOFILES.iterdir():
-        files_path.append(child)"""
-
-    data_dict: dict = {}
-
-    for file_path in files_path:
-        with (open(file_path, newline="") as csvfile):
-            reader = csv.reader(csvfile, delimiter=" ", quotechar="|")
-            list_of = enumerate(reader)
-            full_name = csvfile.name.split('\\')[-1][0:-4]
-            name = full_name.split('\\')[-1][0:-1]
-            name =name.split('/')[-1]
-            if name in data_dict.keys():
-                dictval = data_dict[name]
-            else:
-                dictval = data_dict[name] = {'head': {},
-                                             'voltage': [],
-                                             'current': [],
-                                             'time': [],
-                                             }
-            for index, row in list_of:
-                if index > 24:
-                    if full_name.endswith("1"):
-                        dictval['time'].append(float(row[0].split(',')[0]))
-                        dictval['voltage'].append(float(row[0].split(',')[1]))
-                    else:
-                        if float(row[0].split(',')[1]) > 0:
-                            dictval['current'].append(float(row[0].split(',')[1]))
-                        else:
-                            dictval['current'].append(0.0)
-                else:
-                    if row[0] in dictval['head'].keys():
-                        dictval['head'][row[0].split(',')[0]].append(row[0].split(',')[-1])
-                    else:
-                        dictval['head'][row[0].split(',')[0]] = []
-                        dictval['head'][row[0].split(',')[0]].append(row[0].split(',')[-1])
-
-    return data_dict
 
 
 def volt_in_intervals(data_dict):
@@ -270,8 +231,12 @@ def result2(paths):
 
 if __name__ == '__main__':
     print('runing')
+
     paths = get_files()
-    result2(paths)
+    files = LoadCSVs(paths)
+    print()
+    
+    #result2(paths)
 
     # frek = 100Hz
     # osciloskop 10 dilku na obrazovce x
