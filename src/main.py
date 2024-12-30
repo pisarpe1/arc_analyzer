@@ -236,7 +236,7 @@ if __name__ == '__main__':
     files = LoadCSVs(paths)
     print()
     
-    #result2(paths)
+    # result2(paths)
 
     # frek = 100Hz
     # osciloskop 10 dilku na obrazovce x

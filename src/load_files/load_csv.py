@@ -1,7 +1,12 @@
 
 
 
+from copy import deepcopy
 import csv
+
+from results.data_filtr import DataFiltr
+
+
 
 class CSVFile:
     HEAD_INDEX_END = 24
@@ -9,6 +14,8 @@ class CSVFile:
         self.path = path
         self.raw_data_head: dict = {}
         self.raw_data: list = []
+        self.time_data: list = []
+
         self.raw_file = self.load_csv()
         self.full_name = None
         self.name = self.set_names()
@@ -19,6 +26,7 @@ class CSVFile:
             file = list(reader)
         head = {}
         data = []
+        time = []
         for index, row in enumerate(file):
             if index < self.HEAD_INDEX_END:
                 if row[0] in head:
@@ -26,9 +34,12 @@ class CSVFile:
                 else:
                     head[row[0]] = row[1:][-1]
             else:
-                data.append(row)
+                if index > self.HEAD_INDEX_END:
+                    time.append(float(row[0]))
+                    data.append(float(row[1]))
         self.raw_data_head = head
-        self.raw_data = data[1:]       
+        self.raw_data = data 
+        self.time_data = time  
         return file
     
     def set_names(self):
@@ -51,7 +62,7 @@ class DataType(enumerate):
     Hz = '[Hz]'
 
 
-class LoadCSV(CSVFile):
+class LoadCSV(CSVFile, DataFiltr):
 
     # frek = 100Hz
     # osciloskop 10 dilku na obrazovce x
@@ -64,13 +75,47 @@ class LoadCSV(CSVFile):
 
     def __init__(self, path: str):
         self.raw = CSVFile(path)
+        self.data = deepcopy(self.raw.raw_data)
+        self.time_data = deepcopy(self.raw.time_data)
         self.voltage_flag = False
         self.current_flag = not self.voltage_flag
         self.frequency= self.set_frequency()
         self.set_flag()
+        self.filter_data()
+        self.plot_data()
 
-    def __iter__(self):
-        return self.raw.raw_data
+    def plot_data(self):
+        impulses  = self.find_impulses()
+        print(len(impulses))
+        import matplotlib.pyplot as plt
+        smoothed_data = self.smoothed_voltage_data(self.voltage_flag)   
+        plt.figure(figsize=(10, 5))
+        #plt.plot(self.time_data, self.raw.raw_data, label='Raw Data', linestyle='--')
+        plt.plot(self.time_data, self.data, label='Filtered Data', linestyle='-')
+        plt.plot(self.time_data, smoothed_data, label='Smoothed Data_gausian')
+        plt.xlabel('Time (s)')
+        plt.ylabel('Value')
+        plt.title(f'Data Plot for {self.name}')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+    def find_impulses(self, threshold=-0.5, min_distance=10):
+        impulses = []
+        data = self.smoothed_voltage_data(self.voltage_flag)
+        for i in range(1, len(data) - 1):
+            if data[i] < threshold and data[i] < data[i - 1] and data[i] < data[i + 1]:
+                if not impulses or (i - impulses[-1][0] > min_distance):
+                    impulses.append((self.time_data[i], data[i]))
+        if len(impulses) != 100:
+            print(f"Warning: Expected 100 pulses, but found {len(impulses)}")
+        return impulses
+
+    def get_data(self):
+        return self.data
+    
+    def get_time_data(self):
+        return self.time_data
 
     @property
     def name(self):
@@ -103,6 +148,15 @@ class LoadCSV(CSVFile):
     
     def get_y_scale(self):
         return self.raw.raw_data_head['Vertical Scale']
+    
+    def filter_data(self):
+        if self.voltage_flag:
+            new_vals = [self.filter_positive(value) for value in self.data]
+        else:
+            new_vals =  [self.filter_negative(value) for value in self.data]
+        new_vals = self.noise_to_zero(new_vals)
+        self.data = new_vals
+
 
 
 
