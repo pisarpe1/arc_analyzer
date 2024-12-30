@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from GUI import get_files
-from load_files.load_csv import LoadCSVs, load_files
+from load_files.load_csv import LoadCSVs
 
 PATHTOFILES = pathlib.Path("csv_files/")
 
@@ -234,6 +234,9 @@ if __name__ == '__main__':
 
     paths = get_files()
     files = LoadCSVs(paths)
+    for pair in files.pairs.keys():
+        files.plot_measurements(pair)
+
     print()
     
     # result2(paths)

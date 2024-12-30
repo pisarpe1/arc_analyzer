@@ -1,10 +1,10 @@
 
 
-
 from copy import deepcopy
 import csv
+import matplotlib.pyplot as plt
 
-from results.data_filtr import DataFiltr
+from results.data_filtr import DataFiltr 
 
 
 
@@ -79,37 +79,47 @@ class LoadCSV(CSVFile, DataFiltr):
         self.time_data = deepcopy(self.raw.time_data)
         self.voltage_flag = False
         self.current_flag = not self.voltage_flag
-        self.frequency= self.set_frequency()
+        self.frequency = self.set_frequency()
         self.set_flag()
         self.filter_data()
-        self.plot_data()
+        #self.plot_data()
 
     def plot_data(self):
-        impulses  = self.find_impulses()
-        print(len(impulses))
-        import matplotlib.pyplot as plt
+        impulses = self.find_impulses()
+        
         smoothed_data = self.smoothed_voltage_data(self.voltage_flag)   
         plt.figure(figsize=(10, 5))
         #plt.plot(self.time_data, self.raw.raw_data, label='Raw Data', linestyle='--')
         plt.plot(self.time_data, self.data, label='Filtered Data', linestyle='-')
         plt.plot(self.time_data, smoothed_data, label='Smoothed Data_gausian')
+
+        for impulse in impulses:
+            plt.axvspan(impulse[0] - impulse[1], impulse[0] + impulse[1] * 5, color='red', alpha=0.3)
         plt.xlabel('Time (s)')
         plt.ylabel('Value')
         plt.title(f'Data Plot for {self.name}')
         plt.legend()
         plt.grid(True)
-        plt.show()
 
-    def find_impulses(self, threshold=-0.5, min_distance=10):
+        return plt
+
+    def find_impulses(self, threshold=-100, min_distance=1000):
         impulses = []
         data = self.smoothed_voltage_data(self.voltage_flag)
         for i in range(1, len(data) - 1):
             if data[i] < threshold and data[i] < data[i - 1] and data[i] < data[i + 1]:
                 if not impulses or (i - impulses[-1][0] > min_distance):
-                    impulses.append((self.time_data[i], data[i]))
+                    start = i
+                    while i < len(data) and data[i] < threshold:
+                        i += 1
+                    end = i
+                    length = self.time_data[end] - self.time_data[start]
+                    impulses.append((self.time_data[start], length))
         if len(impulses) != 100:
             print(f"Warning: Expected 100 pulses, but found {len(impulses)}")
+        self.impulses = impulses
         return impulses
+    
 
     def get_data(self):
         return self.data
@@ -176,6 +186,29 @@ class LoadCSVs:
         self.check_pairs()
 
         return files
+    
+    def get_max_current_in_impulse(self, impulse):
+            start_time, duration = impulse
+            end_time = start_time + duration
+            start_index = next(i for i, t in enumerate(self.time_data) if t >= start_time)
+            end_index = next(i for i, t in enumerate(self.time_data) if t >= end_time)
+            max_current = max(self.data[start_index:end_index])
+            return max_current
+
+    def plot_measurements(self, key):
+        voltage = self.pairs[key]['voltage']
+        current = self.pairs[key]['current']
+        plot = None
+        if voltage is not None:
+            plot  = voltage.plot_data()
+        if current is not None:
+            plot.plot(current.get_time_data(), current.get_data(), label='Current Data', linestyle='-', marker='o')
+        plot.xlabel('Time (s)')
+        plot.ylabel('Value')
+        plot.title(f'Data Plot for {key}')
+        plot.legend()
+        plot.grid(True)
+        plot.show()
 
     def set_pairs(self, file):
         if file.name in self.pairs.keys():
@@ -197,45 +230,3 @@ class LoadCSVs:
             if self.pairs[key]['current'] is None:
                 print(f"Current file is missing for {key}")
            
-    
-def load_files(paths):
-    files_path = paths
-
-    """for child in PATHTOFILES.iterdir():
-        files_path.append(child)"""
-
-    data_dict: dict = {}
-
-    for file_path in files_path:
-        with (open(file_path, newline="") as csvfile):
-            reader = csv.reader(csvfile, delimiter=" ", quotechar="|")
-            list_of = enumerate(reader)
-            full_name = csvfile.name.split('\\')[-1][0:-4]
-            name = full_name.split('\\')[-1][0:-1]
-            name =name.split('/')[-1]
-            if name in data_dict.keys():
-                dictval = data_dict[name]
-            else:
-                dictval = data_dict[name] = {'head': {},
-                                             'voltage': [],
-                                             'current': [],
-                                             'time': [],
-                                             }
-            for index, row in list_of:
-                if index > 24:
-                    if full_name.endswith("1"):
-                        dictval['time'].append(float(row[0].split(',')[0]))
-                        dictval['voltage'].append(float(row[0].split(',')[1]))
-                    else:
-                        if float(row[0].split(',')[1]) > 0:
-                            dictval['current'].append(float(row[0].split(',')[1]))
-                        else:
-                            dictval['current'].append(0.0)
-                else:
-                    if row[0] in dictval['head'].keys():
-                        dictval['head'][row[0].split(',')[0]].append(row[0].split(',')[-1])
-                    else:
-                        dictval['head'][row[0].split(',')[0]] = []
-                        dictval['head'][row[0].split(',')[0]].append(row[0].split(',')[-1])
-
-    return data_dict
