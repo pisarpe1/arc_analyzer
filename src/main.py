@@ -234,9 +234,11 @@ if __name__ == '__main__':
 
     paths = get_files()
     files = LoadCSVs(paths)
-    for pair in files.pairs.keys():
-        # files.plot_measurements(pair)
-        pass
+    files.output_values_and_plot()
+    """for pair in files.pairs.keys():
+
+        files.plot_measurements(pair)"""
+        
 
     print()
     
