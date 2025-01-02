@@ -9,7 +9,7 @@ from load_files.load_csv import LoadCSVs
 
 PATHTOFILES = pathlib.Path("csv_files/")
 
-
+"""
 def thresholding_algo(y):
     lag = 5  # average and std. are based on past 5 observations
     threshold = 3.5  # signal when data point is 3.5 std. away from average
@@ -227,7 +227,7 @@ def result2(paths):
         plt.title(f'{key} '
                   f'\nvolt peaks: {len(data_dict[key]['pulse_curr_in_ranges'])}; current peaks: {current_peaks}')
         plt.show()
-
+"""
 
 if __name__ == '__main__':
     print('runing')
@@ -235,7 +235,8 @@ if __name__ == '__main__':
     paths = get_files()
     files = LoadCSVs(paths)
     for pair in files.pairs.keys():
-        files.plot_measurements(pair)
+        # files.plot_measurements(pair)
+        pass
 
     print()
     

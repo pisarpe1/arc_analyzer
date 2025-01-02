@@ -80,21 +80,59 @@ class LoadCSV(CSVFile, DataFiltr):
         self.voltage_flag = False
         self.current_flag = not self.voltage_flag
         self.frequency = self.set_frequency()
+        self.current_histogram = { 'inter_0_3': 0,
+        'inter_0_50': 0,
+        'inter_50_80': 0,
+        'inter_80_120': 0,
+        'inter_more_120': 0}
         self.set_flag()
         self.filter_data()
-        #self.plot_data()
+
+        self.impulses = []
+        if self.voltage_flag:
+            self.impulses = self.find_impulses()
+            self.set_impulses_indexies()
+
+    def set_histogram(self):
+        for impulse in self.impulses:
+            if impulse['max_current'] < 3:
+                self.current_histogram['inter_0_3'] += 1
+            elif impulse['max_current'] < 50:
+                self.current_histogram['inter_0_50'] += 1
+            elif impulse['max_current'] < 80:
+                self.current_histogram['inter_50_80'] += 1
+            elif impulse['max_current'] < 120:
+                self.current_histogram['inter_80_120'] += 1
+            else:
+                self.current_histogram['inter_more_120'] += 1
+
+    def get_impuls_start_index(self, impulse) -> int:
+        start = impulse['peak'] - self.get_average_impulse_len() * 2
+        if start < 0:
+            return 0
+        return start
+    
+    def get_impuls_end_index(self, impulse) -> int:
+        end = impulse['peak'] + self.get_average_impulse_len() * 5
+        if end > len(self.time_data):
+            return len(self.time_data) - 1
+        return end
+    
+    def set_impulses_indexies(self):
+        for impulse in self.impulses:
+            impulse['start'] = self.get_impuls_start_index(impulse)
+            impulse['end'] = self.get_impuls_end_index(impulse)
 
     def plot_data(self):
-        impulses = self.find_impulses()
-        
         smoothed_data = self.smoothed_voltage_data(self.voltage_flag)   
         plt.figure(figsize=(10, 5))
         #plt.plot(self.time_data, self.raw.raw_data, label='Raw Data', linestyle='--')
         plt.plot(self.time_data, self.data, label='Filtered Data', linestyle='-')
         plt.plot(self.time_data, smoothed_data, label='Smoothed Data_gausian')
 
-        for impulse in impulses:
-            plt.axvspan(impulse[0] - impulse[1], impulse[0] + impulse[1] * 5, color='red', alpha=0.3)
+        for impulse in self.impulses:
+            plt.axvspan(self.time_data[impulse['start']],
+                        self.time_data[impulse['end']], color='red', alpha=0.3)
         plt.xlabel('Time (s)')
         plt.ylabel('Value')
         plt.title(f'Data Plot for {self.name}')
@@ -102,21 +140,37 @@ class LoadCSV(CSVFile, DataFiltr):
         plt.grid(True)
 
         return plt
+    
+    def get_average_impulse_len(self):
+        average = int(sum([impulse['time_index_len'] for impulse in self.impulses]) / len(self.impulses))
+
+        return average 
 
     def find_impulses(self, threshold=-100, min_distance=1000):
         impulses = []
         data = self.smoothed_voltage_data(self.voltage_flag)
-        for i in range(1, len(data) - 1):
-            if data[i] < threshold and data[i] < data[i - 1] and data[i] < data[i + 1]:
-                if not impulses or (i - impulses[-1][0] > min_distance):
-                    start = i
+        for i in range(1, len(data)):
+            if data[i] < threshold and data[i] < data[i - 1] and (i + 1 < len(data) and data[i] < data[i + 1]):
+                if not impulses or (i - impulses[-1]['peak_time'] > min_distance):
+                    start_index = i
                     while i < len(data) and data[i] < threshold:
                         i += 1
-                    end = i
-                    length = self.time_data[end] - self.time_data[start]
-                    impulses.append((self.time_data[start], length))
+                    end_index = i
+                    length = self.time_data[end_index] - self.time_data[start_index]
+                    length_index = end_index - start_index
+                    impulses.append({'peak_time': self.time_data[start_index],
+                                     'time_length': length,
+                                     'time_index_len': length_index,
+                                     'peak': int(start_index),
+                                     'max_current': 0,
+                                     })
+                    
         if len(impulses) != 100:
-            print(f"Warning: Expected 100 pulses, but found {len(impulses)}")
+            if  len(impulses) == 200:
+                pass
+            else:
+                print(f"Warning: Expected 100 pulses, but found {len(impulses)}")
+
         self.impulses = impulses
         return impulses
     
@@ -147,18 +201,6 @@ class LoadCSV(CSVFile, DataFiltr):
         """Return time in seconds"""
         return self.raw.raw_data_head['Time']
     
-    def get_x_units(self):
-        return self.raw.raw_data_head['Horizontal Units']
-    
-    def get_y_units(self):
-        return self.raw.raw_data_head['Vertical Units']
-    
-    def get_x_scale(self):
-        return self.raw.raw_data_head['Horizontal Scale']
-    
-    def get_y_scale(self):
-        return self.raw.raw_data_head['Vertical Scale']
-    
     def filter_data(self):
         if self.voltage_flag:
             new_vals = [self.filter_positive(value) for value in self.data]
@@ -175,7 +217,33 @@ class LoadCSVs:
         self.paths = paths
         self.pairs: dict[str, dict[str, LoadCSV]] = {}
         self.all_files: list[LoadCSV] = self.load_files()
+        self.average_histogram = { 'inter_0_3': 0,  'inter_0_50': 0,  'inter_50_80': 0,  'inter_80_120': 0,  'inter_more_120': 0}
+        self.set_max_current_in_impulses()
+        self.calculate_average_histogram()
+        
 
+
+    
+    def get_average_histogram(self):
+        print(self.average_histogram)
+        return self.average_histogram
+
+    def calculate_average_histogram(self):
+        for key in self.pairs.keys():
+            print(key ,self.pairs[key]['voltage'].current_histogram)
+            for range in self.pairs[key]['voltage'].current_histogram:
+                self.average_histogram[range] += self.pairs[key]['voltage'].current_histogram[range]
+
+        for range in self.average_histogram:
+            self.average_histogram[range] = self.average_histogram[range] / len(self.pairs.keys())
+        self.get_average_histogram()
+        
+    
+    def set_max_current_in_impulses(self):
+        for pair in self.pairs.keys():
+            for impuls in self.pairs[pair]['voltage'].impulses:
+                self.get_max_current_in_impulse(self.pairs[pair]['current'].data, impuls)
+            self.pairs[pair]['voltage'].set_histogram()
         
     def load_files(self):
         files = []
@@ -187,13 +255,8 @@ class LoadCSVs:
 
         return files
     
-    def get_max_current_in_impulse(self, impulse):
-            start_time, duration = impulse
-            end_time = start_time + duration
-            start_index = next(i for i, t in enumerate(self.time_data) if t >= start_time)
-            end_index = next(i for i, t in enumerate(self.time_data) if t >= end_time)
-            max_current = max(self.data[start_index:end_index])
-            return max_current
+    def get_max_current_in_impulse(self, current, impulse):
+        impulse['max_current'] = max(current[impulse['start']:impulse['end']])
 
     def plot_measurements(self, key):
         voltage = self.pairs[key]['voltage']
@@ -202,7 +265,7 @@ class LoadCSVs:
         if voltage is not None:
             plot  = voltage.plot_data()
         if current is not None:
-            plot.plot(current.get_time_data(), current.get_data(), label='Current Data', linestyle='-', marker='o')
+            plot.plot(current.get_time_data(), current.get_data(), label='Current Data', linestyle='-')
         plot.xlabel('Time (s)')
         plot.ylabel('Value')
         plot.title(f'Data Plot for {key}')
