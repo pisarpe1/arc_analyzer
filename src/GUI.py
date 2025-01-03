@@ -14,29 +14,38 @@ def get_files():
     return filenames if filenames else []
 
 def output_values_and_plot():
-    root = tk.Tk()
-    root.title("CSV Plotter")
-    root.geometry("800x600")  # Set the window size to 800x600
+    def create_main_window():
+        root = tk.Tk()
+        root.title("CSV Plotter")
+        root.geometry("800x600")  # Set the window size to 800x600
+        return root
 
-    listbox = tk.Listbox(root, width=50)
-    listbox.pack(pady=20, side=tk.LEFT, fill=tk.BOTH, expand=True)
+    def create_listbox(root):
+        listbox = tk.Listbox(root, width=50)
+        listbox.pack(pady=20, side=tk.LEFT, fill=tk.BOTH, expand=True)
+        return listbox
 
-    right_frame = tk.Frame(root)
-    right_frame.pack(pady=20, side=tk.RIGHT, fill=tk.BOTH, expand=True)
+    def create_right_frame(root):
+        right_frame = tk.Frame(root)
+        right_frame.pack(pady=20, side=tk.RIGHT, fill=tk.BOTH, expand=True)
+        return right_frame
 
-    histogram_label = tk.Label(right_frame, text="File Current Histogram")
-    histogram_label.pack(pady=20)
+    def create_labels(right_frame):
+        histogram_label = tk.Label(right_frame, text="File Current Histogram")
+        histogram_label.pack(pady=20)
 
-    separator = tk.Frame(right_frame, height=2, bd=1, relief=tk.SUNKEN)
-    separator.pack(fill=tk.X, padx=5, pady=5)
+        separator = tk.Frame(right_frame, height=2, bd=1, relief=tk.SUNKEN)
+        separator.pack(fill=tk.X, padx=5, pady=5)
 
-    average_histogram_label = tk.Label(right_frame, text="Average Current Histogram")
-    average_histogram_label.pack(pady=20)
+        average_histogram_label = tk.Label(right_frame, text="Average Current Histogram")
+        average_histogram_label.pack(pady=20)
 
-    separator = tk.Frame(right_frame, height=2, bd=1, relief=tk.SUNKEN)
-    separator.pack(fill=tk.X, padx=5, pady=5)
+        separator = tk.Frame(right_frame, height=2, bd=1, relief=tk.SUNKEN)
+        separator.pack(fill=tk.X, padx=5, pady=5)
 
-    def open_files():
+        return histogram_label, average_histogram_label
+
+    def open_files(listbox, average_histogram_label):
         file_paths = filedialog.askopenfilenames(filetypes=[("CSV files", "*.csv")])
         if file_paths:
             global load_csvs_instance
@@ -54,24 +63,29 @@ def output_values_and_plot():
             average_histogram_text = "\n".join([f"{k}: {v}" for k, v in load_csvs_instance.average_histogram.items()])
             average_histogram_label.config(text="Average Current Histogram\n\n" + average_histogram_text)
 
-    def on_select(event):
+    def on_select(event, listbox, histogram_label):
         if listbox.curselection():
             selected_key = listbox.get(listbox.curselection())
             histogram = load_csvs_instance.pairs[selected_key]['voltage'].current_histogram
             histogram_text = "\n".join([f"{k}: {v}" for k, v in histogram.items()])
             histogram_label.config(text=f"{selected_key} Current Histogram\n\n" + histogram_text)
 
-    def plot_selected():
+    def plot_selected(listbox):
         if listbox.curselection():
             selected_key = listbox.get(listbox.curselection())
             load_csvs_instance.plot_measurements(selected_key)
 
-    listbox.bind('<<ListboxSelect>>', on_select)
+    root = create_main_window()
+    listbox = create_listbox(root)
+    right_frame = create_right_frame(root)
+    histogram_label, average_histogram_label = create_labels(right_frame)
 
-    plot_button = tk.Button(right_frame, text="Plot Open", command=plot_selected)
+    listbox.bind('<<ListboxSelect>>', lambda event: on_select(event, listbox, histogram_label))
+
+    plot_button = tk.Button(right_frame, text="Plot Open", command=lambda: plot_selected(listbox))
     plot_button.pack(pady=20, side=tk.BOTTOM, anchor='center')
 
-    open_button = tk.Button(right_frame, text="Load Files", command=open_files)
+    open_button = tk.Button(right_frame, text="Load Files", command=lambda: open_files(listbox, average_histogram_label))
     open_button.pack(pady=20, side=tk.BOTTOM, anchor='center')
 
     root.mainloop()
