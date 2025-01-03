@@ -74,6 +74,8 @@ class LoadCSV(CSVFile, DataFiltr):
     # histogram 0-50
     #           50-80
     #           80-120
+    ENHANCE_START_INDEX = 2
+    ENHANCE_END_INDEX = 5
 
     def __init__(self, path: str):
         self.raw = CSVFile(path)
@@ -109,13 +111,13 @@ class LoadCSV(CSVFile, DataFiltr):
                 self.current_histogram['inter_more_120'] += 1
 
     def get_impuls_start_index(self, impulse) -> int:
-        start = impulse['peak'] - self.get_average_impulse_len() * 2
+        start = impulse['peak'] - self.get_average_impulse_len() * self.ENHANCE_START_INDEX
         if start < 0:
             return 0
         return start
     
     def get_impuls_end_index(self, impulse) -> int:
-        end = impulse['peak'] + self.get_average_impulse_len() * 5
+        end = impulse['peak'] + self.get_average_impulse_len() * self.ENHANCE_END_INDEX
         if end > len(self.time_data):
             return len(self.time_data) - 1
         return end

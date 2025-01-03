@@ -14,6 +14,7 @@ def get_files():
     return filenames if filenames else []
 
 def output_values_and_plot():
+
     def create_main_window():
         root = tk.Tk()
         root.title("CSV Plotter")
@@ -79,6 +80,41 @@ def output_values_and_plot():
     listbox = create_listbox(root)
     right_frame = create_right_frame(root)
     histogram_label, average_histogram_label = create_labels(right_frame)
+
+    def create_input_fields(right_frame):
+        input_frame = tk.Frame(right_frame)
+        input_frame.pack(pady=20)
+
+        enhance_start_label = tk.Label(input_frame, text="Start Index:")
+        enhance_start_label.grid(row=0, column=0, padx=5)
+
+        enhance_start_entry = tk.Entry(input_frame)
+        enhance_start_entry.grid(row=0, column=1, padx=5)
+
+        enhance_end_label = tk.Label(input_frame, text="End Index:")
+        enhance_end_label.grid(row=0, column=2, padx=5)
+
+        enhance_end_entry = tk.Entry(input_frame)
+        enhance_end_entry.grid(row=0, column=3, padx=5)
+
+        def time_to_index(time_value, frequency):
+            """
+            Convert a given time value to an index based on the file frequency.
+
+            :param time_value: Time value in seconds.
+            :param frequency: Frequency of the file in Hz.
+            :return: Corresponding index.
+            """
+            return int(time_value * frequency)
+
+        submit_button = tk.Button(input_frame, text="Submit", command=lambda: print(enhance_start_entry.get(), enhance_end_entry.get()))
+        submit_button.grid(row=0, column=4, padx=5)
+
+        return enhance_start_entry, enhance_end_entry
+    
+
+    enhance_start_entry, enhance_end_entry = create_input_fields(right_frame)
+    print(enhance_start_entry.get(), enhance_end_entry.get())
 
     listbox.bind('<<ListboxSelect>>', lambda event: on_select(event, listbox, histogram_label))
 
