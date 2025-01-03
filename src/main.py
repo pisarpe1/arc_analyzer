@@ -4,7 +4,7 @@ import pathlib
 import matplotlib.pyplot as plt
 import numpy as np
 
-from GUI import get_files
+from GUI import get_files, output_values_and_plot
 from load_files.load_csv import LoadCSVs
 
 PATHTOFILES = pathlib.Path("csv_files/")
@@ -232,17 +232,8 @@ def result2(paths):
 if __name__ == '__main__':
     print('runing')
 
-    paths = get_files()
-    files = LoadCSVs(paths)
-    files.output_values_and_plot()
-    """for pair in files.pairs.keys():
+    output_values_and_plot()
 
-        files.plot_measurements(pair)"""
-        
-
-    print()
-    
-    # result2(paths)
 
     # frek = 100Hz
     # osciloskop 10 dilku na obrazovce x

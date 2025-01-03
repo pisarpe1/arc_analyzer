@@ -221,71 +221,23 @@ class LoadCSVs:
         self.all_files: list[LoadCSV] = self.load_files()
         self.average_histogram = { 'inter_0_3': 0,  'inter_0_50': 0,  'inter_50_80': 0,  'inter_80_120': 0,  'inter_more_120': 0}
         self.set_max_current_in_impulses()
-        self.calculate_average_histogram()
         
-
-    def output_values_and_plot(self):
-        root = tk.Tk()
-        root.title("CSV Plotter")
-        listbox = tk.Listbox(root)
-        listbox.pack(pady=20)
-
-        histogram_label = tk.Label(root, text="")
-        histogram_label.pack(pady=20)
-
-        average_histogram_label = tk.Label(root, text="")
-        average_histogram_label.pack(pady=20)
-
-        for key in self.pairs.keys():
-            listbox.insert(tk.END, key)
-
-        def on_select(event):
-            selected_key = listbox.get(listbox.curselection())
-            histogram = self.pairs[selected_key]['voltage'].current_histogram
-            histogram_text = "\n".join([f"{k}: {v}" for k, v in histogram.items()])
-            histogram_label.config(text=histogram_text)
-
-        average_histogram_text = "\n".join([f"{k}: {v}" for k, v in self.average_histogram.items()])
-        average_histogram_label.config(text=average_histogram_text)
-
-        listbox.bind('<<ListboxSelect>>', on_select)
-
-        def open_files():
-            file_paths = filedialog.askopenfilenames(filetypes=[("CSV files", "*.csv")])
-            if file_paths:
-                self.paths = list(file_paths)
-                self.all_files = self.load_files()
-                self.set_max_current_in_impulses()
-                self.calculate_average_histogram()
-            listbox.delete(0, tk.END)
-            for key in self.pairs.keys():
-                listbox.insert(tk.END, key)
-            
-
-        def plot_selected():
-            selected_key = listbox.get(listbox.curselection())
-            self.plot_measurements(selected_key)
-
-        plot_button = tk.Button(root, text="Plot Selected", command=plot_selected)
-        plot_button.pack(pady=20)
-
-        open_button = tk.Button(root, text="Open Files", command=open_files)
-        open_button.pack(pady=20)
-
-        root.mainloop()
     
     def get_average_histogram(self):
         print(self.average_histogram)
         return self.average_histogram
 
     def calculate_average_histogram(self):
+        valid_files = 0 
         for key in self.pairs.keys():
             print(key ,self.pairs[key]['voltage'].current_histogram)
-            for range in self.pairs[key]['voltage'].current_histogram:
-                self.average_histogram[range] += self.pairs[key]['voltage'].current_histogram[range]
-
+            if self.pairs[key]['voltage'].current_histogram['inter_0_3'] != 100:
+                for range in self.pairs[key]['voltage'].current_histogram:
+                    self.average_histogram[range] += self.pairs[key]['voltage'].current_histogram[range]
+                valid_files += 1         
+        print(valid_files)
         for range in self.average_histogram:
-            self.average_histogram[range] = self.average_histogram[range] / len(self.pairs.keys())
+            self.average_histogram[range] = round(self.average_histogram[range] / valid_files, 1)
         self.get_average_histogram()
         
     

@@ -1,6 +1,10 @@
-import tkinter
-from tkinter import Tk
+import tkinter as tk
+from tkinter import Tk, filedialog
 from tkinter.filedialog import askopenfilenames
+
+from load_files.load_csv import LoadCSVs
+
+
 
 
 def get_files():
@@ -9,51 +13,50 @@ def get_files():
 
     return filenames if filenames else []
 
-"""
-from tkinter import *
-from tkinter.ttk import *
+def output_values_and_plot():
+    root = tk.Tk()
+    root.title("CSV Plotter")
+    listbox = tk.Listbox(root)
+    listbox.pack(pady=20)
 
-# creates a Tk() object
-master = Tk()
+    histogram_label = tk.Label(root, text="")
+    histogram_label.pack(pady=20)
 
-# sets the geometry of main
-# root window
-master.geometry("200x200")
+    average_histogram_label = tk.Label(root, text="")
+    average_histogram_label.pack(pady=20)
 
+    def open_files():
+        file_paths = filedialog.askopenfilenames(filetypes=[("CSV files", "*.csv")])
+        if file_paths:
+            global load_csvs_instance
+            load_csvs_instance = LoadCSVs(list(file_paths))
+            load_csvs_instance.all_files = load_csvs_instance.load_files()
+            load_csvs_instance.set_max_current_in_impulses()
+            load_csvs_instance.calculate_average_histogram()
+            listbox.delete(0, tk.END)
+            for key in load_csvs_instance.pairs.keys():
+                listbox.insert(tk.END, key)
+            average_histogram_text = "\n".join([f"{k}: {v}" for k, v in load_csvs_instance.average_histogram.items()])
+            average_histogram_label.config(text=average_histogram_text)
 
-# function to open a new window
-# on a button click
-def openNewWindow():
-    # Toplevel object which will
-    # be treated as a new window
-    newWindow = Toplevel(master)
+    def on_select(event):
+        if listbox.curselection():
+            selected_key = listbox.get(listbox.curselection())
+            histogram = load_csvs_instance.pairs[selected_key]['voltage'].current_histogram
+            histogram_text = "\n".join([f"{k}: {v}" for k, v in histogram.items()])
+            histogram_label.config(text=histogram_text)
 
-    # sets the title of the
-    # Toplevel widget
-    newWindow.title("New Window")
+    def plot_selected():
+        if listbox.curselection():
+            selected_key = listbox.get(listbox.curselection())
+            load_csvs_instance.plot_measurements(selected_key)
 
-    # sets the geometry of toplevel
-    newWindow.geometry("200x200")
+    listbox.bind('<<ListboxSelect>>', on_select)
 
-    # A Label widget to show in toplevel
-    Label(newWindow,
-          text="This is a new window").pack()
+    plot_button = tk.Button(root, text="Plot Selected", command=plot_selected)
+    plot_button.pack(pady=20)
 
+    open_button = tk.Button(root, text="Open Files", command=open_files)
+    open_button.pack(pady=20)
 
-def get_gui():
-    label = Label(master,
-                  text="This is the main window")
-
-    label.pack(pady=10)
-
-    # a button widget which will open a
-    # new window on button click
-    btn = Button(master,
-                 text="Click to open a new window",
-                 command=get_files())
-    btn.pack(pady=10)
-
-    # mainloop, runs infinitely
-    mainloop()
-
-"""
+    root.mainloop()
