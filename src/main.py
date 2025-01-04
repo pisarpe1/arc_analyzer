@@ -1,11 +1,6 @@
-import csv
 import pathlib
 
-import matplotlib.pyplot as plt
-import numpy as np
-
-from GUI import get_files, output_values_and_plot
-from load_files.load_csv import LoadCSVs
+from GUI import output_values_and_plot
 
 PATHTOFILES = pathlib.Path("csv_files/")
 

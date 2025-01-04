@@ -90,31 +90,43 @@ def output_values_and_plot():
 
         enhance_start_entry = tk.Entry(input_frame)
         enhance_start_entry.grid(row=0, column=1, padx=5)
+        enhance_start_entry.insert(0, "0.0")
 
         enhance_end_label = tk.Label(input_frame, text="End Index:")
         enhance_end_label.grid(row=0, column=2, padx=5)
 
         enhance_end_entry = tk.Entry(input_frame)
         enhance_end_entry.grid(row=0, column=3, padx=5)
+        enhance_end_entry.insert(0, "0.0")
 
-        def time_to_index(time_value, frequency):
-            """
-            Convert a given time value to an index based on the file frequency.
-
-            :param time_value: Time value in seconds.
-            :param frequency: Frequency of the file in Hz.
-            :return: Corresponding index.
-            """
-            return int(time_value * frequency)
-
-        submit_button = tk.Button(input_frame, text="Submit", command=lambda: print(enhance_start_entry.get(), enhance_end_entry.get()))
+        submit_button = tk.Button(input_frame, text="Submit", command=lambda: enhance_selected_file(listbox, enhance_start_entry, enhance_end_entry))
         submit_button.grid(row=0, column=4, padx=5)
 
         return enhance_start_entry, enhance_end_entry
+    def time_to_index(time_value, frequency):
+        """
+        Convert a given time value to an index based on the file frequency.
+
+        :param time_value: Time value in seconds.
+        :param frequency: Frequency of the file in Hz.
+        :return: Corresponding index.
+        """
+        return int(time_value * frequency)
+    
+    def enhance_selected_file(listbox, enhance_start_entry, enhance_end_entry):
+        if listbox.curselection():
+            selected_key = listbox.get(listbox.curselection())
+            start_index = time_to_index(float(enhance_start_entry.get()), load_csvs_instance.pairs[selected_key]['voltage'].frequency)
+            end_index = time_to_index(float(enhance_end_entry.get()), load_csvs_instance.pairs[selected_key]['voltage'].frequency)
+
+            load_csvs_instance.pairs[selected_key]['voltage'].CUSTOM_START_INDEX = start_index
+            load_csvs_instance.pairs[selected_key]['voltage'].CUSTOM_END_INDEX = end_index
+            load_csvs_instance.pairs[selected_key]['voltage'].set_impulses_indexies()
+            load_csvs_instance.set_max_current_in_impulses()
+            print(f"Enhanced {selected_key} from index time {float(enhance_start_entry.get())} {start_index} \n {float(enhance_end_entry.get())} to {end_index}")
     
 
     enhance_start_entry, enhance_end_entry = create_input_fields(right_frame)
-    print(enhance_start_entry.get(), enhance_end_entry.get())
 
     listbox.bind('<<ListboxSelect>>', lambda event: on_select(event, listbox, histogram_label))
 

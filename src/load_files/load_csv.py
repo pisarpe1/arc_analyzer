@@ -75,7 +75,9 @@ class LoadCSV(CSVFile, DataFiltr):
     #           50-80
     #           80-120
     ENHANCE_START_INDEX = 2
+    CUSTOM_START_INDEX = 0
     ENHANCE_END_INDEX = 5
+    CUSTOM_END_INDEX = 0
 
     def __init__(self, path: str):
         self.raw = CSVFile(path)
@@ -112,12 +114,14 @@ class LoadCSV(CSVFile, DataFiltr):
 
     def get_impuls_start_index(self, impulse) -> int:
         start = impulse['peak'] - self.get_average_impulse_len() * self.ENHANCE_START_INDEX
+        start = start - self.CUSTOM_START_INDEX
         if start < 0:
             return 0
         return start
     
     def get_impuls_end_index(self, impulse) -> int:
         end = impulse['peak'] + self.get_average_impulse_len() * self.ENHANCE_END_INDEX
+        end = end + self.CUSTOM_END_INDEX
         if end > len(self.time_data):
             return len(self.time_data) - 1
         return end
