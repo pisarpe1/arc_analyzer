@@ -96,26 +96,26 @@ class LoadCSV(CSVFile, DataFiltr):
             self.set_impulses_indexies()
 
     def reset_histogram(self):
-        self.current_histogram = { 'inter_0_3': 0,
-        'inter_0_50': 0,
-        'inter_50_80': 0,
-        'inter_80_120': 0,
-        'inter_more_120': 0}
+        self.current_histogram = { '0-3 A': 0,
+        '0-50 A': 0,
+        '50-80 A': 0,
+        '80-120 A': 0,
+        '120+ A': 0}
         return self.current_histogram
 
     def set_histogram(self):
         self.current_histogram = self.reset_histogram()
         for impulse in self.impulses:
             if impulse['max_current'] < 3:
-                self.current_histogram['inter_0_3'] += 1
+                self.current_histogram['0-3 A'] += 1
             elif impulse['max_current'] < 50:
-                self.current_histogram['inter_0_50'] += 1
+                self.current_histogram['0-50 A'] += 1
             elif impulse['max_current'] < 80:
-                self.current_histogram['inter_50_80'] += 1
+                self.current_histogram['50-80 A'] += 1
             elif impulse['max_current'] < 120:
-                self.current_histogram['inter_80_120'] += 1
+                self.current_histogram['80-120 A'] += 1
             else:
-                self.current_histogram['inter_more_120'] += 1
+                self.current_histogram['120+ A'] += 1
 
     def get_impuls_start_index(self, impulse) -> int:
         start = impulse['peak'] - self.get_average_impulse_len() * self.ENHANCE_START_INDEX
@@ -230,15 +230,15 @@ class LoadCSVs:
         self.paths = paths
         self.pairs: dict[str, dict[str, LoadCSV]] = {}
         self.all_files: list[LoadCSV] = self.load_files()
-        self.average_histogram = { 'inter_0_3': 0,  'inter_0_50': 0,  'inter_50_80': 0,  'inter_80_120': 0,  'inter_more_120': 0}
+        self.average_histogram = self.reset_histogram()
         self.set_max_current_in_impulses()
     
     def reset_histogram(self):
-        self.average_histogram = { 'inter_0_3': 0,
-        'inter_0_50': 0,
-        'inter_50_80': 0,
-        'inter_80_120': 0,
-        'inter_more_120': 0}
+        self.average_histogram = { '0-3 A': 0,
+        '0-50 A': 0,
+        '50-80 A': 0,
+        '80-120 A': 0,
+        '120+ A': 0}
         return self.average_histogram
     
     def get_average_histogram(self):
@@ -250,7 +250,7 @@ class LoadCSVs:
         valid_files = 0 
         for key in self.pairs.keys():
             print(key ,self.pairs[key]['voltage'].current_histogram)
-            if self.pairs[key]['voltage'].current_histogram['inter_0_3'] != 100:
+            if self.pairs[key]['voltage'].current_histogram['0-3 A'] != 100:
                 for range in self.pairs[key]['voltage'].current_histogram:
                     self.average_histogram[range] += self.pairs[key]['voltage'].current_histogram[range]
                 valid_files += 1         
@@ -287,11 +287,15 @@ class LoadCSVs:
             plot  = voltage.plot_data()
         if current is not None:
             plot.plot(current.get_time_data(), current.get_data(), label='Current Data', linestyle='-')
-        plot.xlabel('Time (s)')
-        plot.ylabel('Value')
-        plot.title(f'Data Plot for {key}')
+        plot.xlabel('Time [s]')
+        plot.ylabel('Value [V]; [A]')
+        plot.title(f'{key}')
         plot.legend()
         plot.grid(True)
+        plot.axhline(y=3, color='blue', linestyle='--', linewidth=0.3, label='3 A')
+        plot.axhline(y=50, color='blue', linestyle='--', linewidth=0.3, label='50 A')
+        plot.axhline(y=80, color='blue', linestyle='--', linewidth=0.3, label='80 A')
+        plot.axhline(y=120, color='blue', linestyle='--', linewidth=0.3, label='120 A')
         plot.show()
 
     def set_pairs(self, file):

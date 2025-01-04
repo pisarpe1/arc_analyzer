@@ -1,17 +1,9 @@
 import tkinter as tk
-from tkinter import Tk, filedialog
+from tkinter import filedialog
 from tkinter.filedialog import askopenfilenames
 
 from load_files.load_csv import LoadCSVs
 
-
-
-
-def get_files():
-    Tk().withdraw()
-    filenames = askopenfilenames()
-
-    return filenames if filenames else []
 
 def output_values_and_plot():
 
@@ -56,19 +48,19 @@ def output_values_and_plot():
             load_csvs_instance.calculate_average_histogram()
             listbox.delete(0, tk.END)
             for key in load_csvs_instance.pairs.keys():
-                if load_csvs_instance.pairs[key]['voltage'].current_histogram.get('inter_0_3') == 100:
+                if load_csvs_instance.pairs[key]['voltage'].current_histogram.get('0-3 A') == 100:
                     listbox.insert(tk.END, key)
                     listbox.itemconfig(tk.END, {'fg': 'red'})
                 else:
                     listbox.insert(tk.END, key)
-            average_histogram_text = "\n".join([f"{k}: {v}" for k, v in load_csvs_instance.average_histogram.items()])
+            average_histogram_text = "\n".join([f"{k:<10}: {v:>5}" for k, v in load_csvs_instance.average_histogram.items()])
             average_histogram_label.config(text="Average Current Histogram\n\n" + average_histogram_text)
 
     def on_select(event, listbox, histogram_label):
         if listbox.curselection():
             selected_key = listbox.get(listbox.curselection())
             histogram = load_csvs_instance.pairs[selected_key]['voltage'].current_histogram
-            histogram_text = "\n".join([f"{k}: {v}" for k, v in histogram.items()])
+            histogram_text = "\n".join([f"{k:<10}: {v:>5}" for k, v in histogram.items()])
             histogram_label.config(text=f"{selected_key} Current Histogram\n\n" + histogram_text)
 
     def plot_selected(listbox):
@@ -82,17 +74,20 @@ def output_values_and_plot():
     histogram_label, average_histogram_label = create_labels(right_frame)
 
     def create_input_fields(right_frame):
+        setup_label = tk.Label(right_frame, text="Setup searching Interval for Current Peaks")
+        setup_label.pack(pady=5)
+
         input_frame = tk.Frame(right_frame)
         input_frame.pack(pady=20)
 
-        enhance_start_label = tk.Label(input_frame, text="Start Index:")
+        enhance_start_label = tk.Label(input_frame, text="Start time shift [s]")
         enhance_start_label.grid(row=0, column=0, padx=5)
 
         enhance_start_entry = tk.Entry(input_frame)
         enhance_start_entry.grid(row=0, column=1, padx=5)
         enhance_start_entry.insert(0, "0.0")
 
-        enhance_end_label = tk.Label(input_frame, text="End Index:")
+        enhance_end_label = tk.Label(input_frame, text="End  time shift [s]")
         enhance_end_label.grid(row=0, column=2, padx=5)
 
         enhance_end_entry = tk.Entry(input_frame)
@@ -101,6 +96,9 @@ def output_values_and_plot():
 
         submit_button = tk.Button(input_frame, text="Submit", command=lambda: enhance_selected_file(listbox, enhance_start_entry, enhance_end_entry))
         submit_button.grid(row=0, column=4, padx=5)
+
+        separator = tk.Frame(right_frame, height=2, bd=1, relief=tk.SUNKEN)
+        separator.pack(fill=tk.X, padx=5, pady=5)
 
         return enhance_start_entry, enhance_end_entry
     def time_to_index(time_value, frequency):
@@ -126,16 +124,16 @@ def output_values_and_plot():
             load_csvs_instance.calculate_average_histogram()
             # Update the histograms in the GUI
             histogram = load_csvs_instance.pairs[selected_key]['voltage'].current_histogram
-            histogram_text = "\n".join([f"{k}: {v}" for k, v in histogram.items()])
+            histogram_text = "\n".join([f"{k:<10}: {v:>5}" for k, v in histogram.items()])
             histogram_label.config(text=f"{selected_key} Current Histogram\n\n" + histogram_text)
 
-            average_histogram_text = "\n".join([f"{k}: {v}" for k, v in load_csvs_instance.average_histogram.items()])
+            average_histogram_text = "\n".join([f"{k:<10}: {v:>5}" for k, v in load_csvs_instance.average_histogram.items()])
             average_histogram_label.config(text="Average Current Histogram\n\n" + average_histogram_text)
 
             # Update the listbox item color based on the new histogram values
             listbox.delete(0, tk.END)
             for key in load_csvs_instance.pairs.keys():
-                if load_csvs_instance.pairs[key]['voltage'].current_histogram.get('inter_0_3') == 100:
+                if load_csvs_instance.pairs[key]['voltage'].current_histogram.get('0-3 A') == 100:
                     listbox.insert(tk.END, key)
                     listbox.itemconfig(tk.END, {'fg': 'red'})
                 else:
@@ -147,10 +145,12 @@ def output_values_and_plot():
 
     listbox.bind('<<ListboxSelect>>', lambda event: on_select(event, listbox, histogram_label))
 
-    plot_button = tk.Button(right_frame, text="Plot Open", command=lambda: plot_selected(listbox))
+    open_button = tk.Button(right_frame, text="Load CSV Files", command=lambda: open_files(listbox, average_histogram_label))
+    open_button.pack(pady=20, side=tk.BOTTOM, anchor='center')
+
+    plot_button = tk.Button(right_frame, text="Show Chart", command=lambda: plot_selected(listbox))
     plot_button.pack(pady=20, side=tk.BOTTOM, anchor='center')
 
-    open_button = tk.Button(right_frame, text="Load Files", command=lambda: open_files(listbox, average_histogram_label))
-    open_button.pack(pady=20, side=tk.BOTTOM, anchor='center')
+    
 
     root.mainloop()
