@@ -86,11 +86,7 @@ class LoadCSV(CSVFile, DataFiltr):
         self.voltage_flag = False
         self.current_flag = not self.voltage_flag
         self.frequency = self.set_frequency()
-        self.current_histogram = { 'inter_0_3': 0,
-        'inter_0_50': 0,
-        'inter_50_80': 0,
-        'inter_80_120': 0,
-        'inter_more_120': 0}
+        self.current_histogram = self.reset_histogram()
         self.set_flag()
         self.filter_data()
 
@@ -99,7 +95,16 @@ class LoadCSV(CSVFile, DataFiltr):
             self.impulses = self.find_impulses()
             self.set_impulses_indexies()
 
+    def reset_histogram(self):
+        self.current_histogram = { 'inter_0_3': 0,
+        'inter_0_50': 0,
+        'inter_50_80': 0,
+        'inter_80_120': 0,
+        'inter_more_120': 0}
+        return self.current_histogram
+
     def set_histogram(self):
+        self.current_histogram = self.reset_histogram()
         for impulse in self.impulses:
             if impulse['max_current'] < 3:
                 self.current_histogram['inter_0_3'] += 1
@@ -227,13 +232,21 @@ class LoadCSVs:
         self.all_files: list[LoadCSV] = self.load_files()
         self.average_histogram = { 'inter_0_3': 0,  'inter_0_50': 0,  'inter_50_80': 0,  'inter_80_120': 0,  'inter_more_120': 0}
         self.set_max_current_in_impulses()
-        
+    
+    def reset_histogram(self):
+        self.average_histogram = { 'inter_0_3': 0,
+        'inter_0_50': 0,
+        'inter_50_80': 0,
+        'inter_80_120': 0,
+        'inter_more_120': 0}
+        return self.average_histogram
     
     def get_average_histogram(self):
         print(self.average_histogram)
         return self.average_histogram
 
     def calculate_average_histogram(self):
+        self.reset_histogram()
         valid_files = 0 
         for key in self.pairs.keys():
             print(key ,self.pairs[key]['voltage'].current_histogram)

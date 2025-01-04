@@ -123,8 +123,25 @@ def output_values_and_plot():
             load_csvs_instance.pairs[selected_key]['voltage'].CUSTOM_END_INDEX = end_index
             load_csvs_instance.pairs[selected_key]['voltage'].set_impulses_indexies()
             load_csvs_instance.set_max_current_in_impulses()
+            load_csvs_instance.calculate_average_histogram()
+            # Update the histograms in the GUI
+            histogram = load_csvs_instance.pairs[selected_key]['voltage'].current_histogram
+            histogram_text = "\n".join([f"{k}: {v}" for k, v in histogram.items()])
+            histogram_label.config(text=f"{selected_key} Current Histogram\n\n" + histogram_text)
+
+            average_histogram_text = "\n".join([f"{k}: {v}" for k, v in load_csvs_instance.average_histogram.items()])
+            average_histogram_label.config(text="Average Current Histogram\n\n" + average_histogram_text)
+
+            # Update the listbox item color based on the new histogram values
+            listbox.delete(0, tk.END)
+            for key in load_csvs_instance.pairs.keys():
+                if load_csvs_instance.pairs[key]['voltage'].current_histogram.get('inter_0_3') == 100:
+                    listbox.insert(tk.END, key)
+                    listbox.itemconfig(tk.END, {'fg': 'red'})
+                else:
+                    listbox.insert(tk.END, key)
+
             print(f"Enhanced {selected_key} from index time {float(enhance_start_entry.get())} {start_index} \n {float(enhance_end_entry.get())} to {end_index}")
-    
 
     enhance_start_entry, enhance_end_entry = create_input_fields(right_frame)
 
