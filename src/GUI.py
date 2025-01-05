@@ -74,7 +74,7 @@ def output_values_and_plot():
     histogram_label, average_histogram_label = create_labels(right_frame)
 
     def create_input_fields(right_frame):
-        setup_label = tk.Label(right_frame, text="Setup searching Interval for Current Peaks")
+        setup_label = tk.Label(right_frame, text="Setup Intervals for Current Peaks searching")
         setup_label.pack(pady=5)
 
         input_frame = tk.Frame(right_frame)
@@ -95,7 +95,7 @@ def output_values_and_plot():
         enhance_end_entry.insert(0, "0.0")
 
         submit_button = tk.Button(input_frame, text="Submit", command=lambda: enhance_selected_file(listbox, enhance_start_entry, enhance_end_entry))
-        submit_button.grid(row=0, column=4, padx=5)
+        submit_button.grid(row=1, column=3, columnspan=4, pady=10)
 
         separator = tk.Frame(right_frame, height=2, bd=1, relief=tk.SUNKEN)
         separator.pack(fill=tk.X, padx=5, pady=5)
