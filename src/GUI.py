@@ -10,7 +10,7 @@ def output_values_and_plot():
     def create_main_window():
         root = tk.Tk()
         root.title("CSV Plotter")
-        root.geometry("800x600")  # Set the window size to 800x600
+        root.geometry("900x600")  # Set the window size to 800x600
         return root
 
     def create_listbox(root):
@@ -95,7 +95,7 @@ def output_values_and_plot():
         enhance_end_entry.insert(0, "0.0")
 
         submit_button = tk.Button(input_frame, text="Submit", command=lambda: enhance_selected_file(listbox, enhance_start_entry, enhance_end_entry))
-        submit_button.grid(row=1, column=3, columnspan=4, pady=10)
+        submit_button.grid(row=0, column=4, columnspan=4, pady=10)
 
         separator = tk.Frame(right_frame, height=2, bd=1, relief=tk.SUNKEN)
         separator.pack(fill=tk.X, padx=5, pady=5)
@@ -146,11 +146,17 @@ def output_values_and_plot():
     listbox.bind('<<ListboxSelect>>', lambda event: on_select(event, listbox, histogram_label))
 
     open_button = tk.Button(right_frame, text="Load CSV Files", command=lambda: open_files(listbox, average_histogram_label))
-    open_button.pack(pady=20, side=tk.BOTTOM, anchor='center')
+    open_button.pack(pady=0, side=tk.BOTTOM, anchor='center')
+
+
+
+    def plot_average_histogram():
+        load_csvs_instance.plot_average_histogram()
 
     plot_button = tk.Button(right_frame, text="Show Chart", command=lambda: plot_selected(listbox))
-    plot_button.pack(pady=20, side=tk.BOTTOM, anchor='center')
+    plot_button.pack(pady=20, side=tk.LEFT, anchor='center')
 
-    
+    plot_average_button = tk.Button(right_frame, text="Plot Average Histogram", command=plot_average_histogram)
+    plot_average_button.pack(pady=20, side=tk.LEFT, anchor='center')
 
     root.mainloop()

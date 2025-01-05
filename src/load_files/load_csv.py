@@ -298,6 +298,39 @@ class LoadCSVs:
         plot.axhline(y=120, color='blue', linestyle='--', linewidth=0.3, label='120 A')
         plot.show()
 
+    def plot_histogram(self, key):
+        histogram = self.pairs[key]['voltage'].current_histogram
+        categories = list(histogram.keys())
+        values = list(histogram.values())
+
+        plt.figure(figsize=(10, 5))
+        plt.bar(categories, values, color='skyblue')
+        plt.xlabel('Current Range')
+        plt.ylabel('Frequency')
+        plt.title(f'Current Histogram for {key}')
+        plt.grid(axis='y')
+        plt.show()
+
+    def plot_average_histogram(self):
+        categories = list(self.average_histogram.keys())
+        values = list(self.average_histogram.values())
+
+        plt.figure(figsize=(10, 5))
+        plt.bar(categories, values, color='skyblue', label='Average Histogram')
+
+        # Plot each individual histogram
+        for key in self.pairs.keys():
+            histogram = self.pairs[key]['voltage'].current_histogram
+            values = list(histogram.values())
+            plt.plot(categories, values, marker='o', linestyle='-', label=f'{key} Histogram')
+
+        plt.xlabel('Current Range')
+        plt.ylabel('Frequency')
+        plt.title('Average Current Histogram and Individual Histograms')
+        plt.legend()
+        plt.grid(axis='y')
+        plt.show()
+
     def set_pairs(self, file):
         if file.name in self.pairs.keys():
             if file.voltage_flag:
