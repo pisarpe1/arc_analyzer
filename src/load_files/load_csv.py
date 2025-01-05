@@ -197,6 +197,9 @@ class LoadCSV(CSVFile, DataFiltr):
     @property
     def name(self):
         return self.raw.get_name()
+    
+    def get_impulses(self):
+        return self.impulses
 
     def set_flag(self):
         if self.raw.raw_data_head['Vertical Units'] == 'V':

@@ -10,7 +10,7 @@ def output_values_and_plot():
     def create_main_window():
         root = tk.Tk()
         root.title("CSV Plotter")
-        root.geometry("900x600")  # Set the window size to 800x600
+        root.geometry("900x700")  # Set the window size to 800x600
         return root
 
     def create_listbox(root):
@@ -47,12 +47,7 @@ def output_values_and_plot():
             load_csvs_instance.set_max_current_in_impulses()
             load_csvs_instance.calculate_average_histogram()
             listbox.delete(0, tk.END)
-            for key in load_csvs_instance.pairs.keys():
-                if load_csvs_instance.pairs[key]['voltage'].current_histogram.get('0-3 A') == 100:
-                    listbox.insert(tk.END, key)
-                    listbox.itemconfig(tk.END, {'fg': 'red'})
-                else:
-                    listbox.insert(tk.END, key)
+            files_color(listbox)
             average_histogram_text = "\n".join([f"{k:<10}: {v:>5}" for k, v in load_csvs_instance.average_histogram.items()])
             average_histogram_label.config(text="Average Current Histogram\n\n" + average_histogram_text)
 
@@ -132,31 +127,41 @@ def output_values_and_plot():
 
             # Update the listbox item color based on the new histogram values
             listbox.delete(0, tk.END)
-            for key in load_csvs_instance.pairs.keys():
-                if load_csvs_instance.pairs[key]['voltage'].current_histogram.get('0-3 A') == 100:
-                    listbox.insert(tk.END, key)
-                    listbox.itemconfig(tk.END, {'fg': 'red'})
-                else:
-                    listbox.insert(tk.END, key)
+            files_color(listbox)
 
             print(f"Enhanced {selected_key} from index time {float(enhance_start_entry.get())} {start_index} \n {float(enhance_end_entry.get())} to {end_index}")
+
+    def files_color(listbox):
+        for key in load_csvs_instance.pairs.keys():
+            if load_csvs_instance.pairs[key]['voltage'].current_histogram.get('0-3 A') == 100 or load_csvs_instance.pairs[key]['voltage'].current_histogram.get('0-3 A') == 200:
+                listbox.insert(tk.END, key)
+                listbox.itemconfig(tk.END, {'fg': 'yellow'})
+            elif len(load_csvs_instance.pairs[key]['voltage'].impulses) != 100 and len(load_csvs_instance.pairs[key]['voltage'].impulses) != 200:
+                listbox.insert(tk.END, key)
+                listbox.itemconfig(tk.END, {'fg': 'red'})
+            else:
+                listbox.insert(tk.END, key)
 
     enhance_start_entry, enhance_end_entry = create_input_fields(right_frame)
 
     listbox.bind('<<ListboxSelect>>', lambda event: on_select(event, listbox, histogram_label))
 
-    open_button = tk.Button(right_frame, text="Load CSV Files", command=lambda: open_files(listbox, average_histogram_label))
-    open_button.pack(pady=0, side=tk.BOTTOM, anchor='center')
-
-
-
     def plot_average_histogram():
         load_csvs_instance.plot_average_histogram()
 
-    plot_button = tk.Button(right_frame, text="Show Chart", command=lambda: plot_selected(listbox))
-    plot_button.pack(pady=20, side=tk.LEFT, anchor='center')
-
-    plot_average_button = tk.Button(right_frame, text="Plot Average Histogram", command=plot_average_histogram)
-    plot_average_button.pack(pady=20, side=tk.LEFT, anchor='center')
+    gui_buttins(open_files, plot_selected, listbox, right_frame, average_histogram_label, plot_average_histogram)
 
     root.mainloop()
+
+def gui_buttins(open_files, plot_selected, listbox, right_frame, average_histogram_label, plot_average_histogram):
+    plot_button = tk.Button(right_frame, text="Show Chart", command=lambda: plot_selected(listbox))
+    plot_button.pack(pady=20, anchor='center')
+
+    plot_average_button = tk.Button(right_frame, text="Plot Average Histogram", command=plot_average_histogram)
+    plot_average_button.pack(pady=20, anchor='center')
+
+    separator = tk.Frame(right_frame, height=2, bd=1, relief=tk.SUNKEN)
+    separator.pack(fill=tk.X, padx=5, pady=5)
+
+    open_button = tk.Button(right_frame, text="Load CSV Files", command=lambda: open_files(listbox, average_histogram_label))
+    open_button.pack(pady=0, side=tk.BOTTOM, anchor='center')
