@@ -4,9 +4,7 @@ from copy import deepcopy
 import csv
 import matplotlib.pyplot as plt
 
-from results.data_filtr import DataFiltr 
-import tkinter as tk
-from tkinter import filedialog
+from src.results.data_filtr import DataFiltr 
 
 
 

@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import filedialog, ttk
 from tkinter.filedialog import askopenfilenames
 
-from load_files.load_csv import LoadCSVs
+from src.load_files.load_csv import LoadCSVs
 
 
 class CSVPlotter:
