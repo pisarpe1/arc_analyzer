@@ -1,11 +1,37 @@
+from threading import Thread
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, ttk
 from tkinter.filedialog import askopenfilenames
 
 from load_files.load_csv import LoadCSVs
 
 
+class CSVPlotter:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("CSV Plotter")
+        self.root.geometry("800x600")
+
 def output_values_and_plot():
+
+
+    def start_loading(listbox, average_histogram_label):
+        """Start the file-loading process in a separate thread."""
+        new_window = tk.Toplevel(root)
+        new_window.title("Loading Progress")
+        new_window.geometry("400x200")
+
+        progress = ttk.Progressbar(new_window, orient="horizontal", length=300, mode="determinate")
+        progress.pack(pady=10)
+
+        label_load = ttk.Label(new_window, text="Click 'Load Files' to start.")
+        label_load.pack(pady=10)
+
+        progress['value'] = 0
+        label_load.config(text="Starting...")
+        Thread(target=open_files, args=(listbox, average_histogram_label, new_window, progress, label_load), daemon=True).start()
+
+
 
     def create_main_window():
         root = tk.Tk()
@@ -38,12 +64,13 @@ def output_values_and_plot():
 
         return histogram_label, average_histogram_label
 
-    def open_files(listbox, average_histogram_label):
+    def open_files(listbox, average_histogram_label,new_window, progress, label_load):
         file_paths = filedialog.askopenfilenames(filetypes=[("CSV files", "*.csv")])
+        #update_loading_status(file_paths)
+        
         if file_paths:
             global load_csvs_instance
-            load_csvs_instance = LoadCSVs(list(file_paths))
-            load_csvs_instance.all_files = load_csvs_instance.load_files()
+            load_csvs_instance = LoadCSVs(list(file_paths),new_window, progress, label_load)
             load_csvs_instance.set_max_current_in_impulses()
             load_csvs_instance.calculate_average_histogram()
             listbox.delete(0, tk.END)
@@ -149,11 +176,11 @@ def output_values_and_plot():
     def plot_average_histogram():
         load_csvs_instance.plot_average_histogram()
 
-    gui_buttins(open_files, plot_selected, listbox, right_frame, average_histogram_label, plot_average_histogram)
+    gui_buttins(start_loading, plot_selected, listbox, right_frame, average_histogram_label, plot_average_histogram)
 
     root.mainloop()
 
-def gui_buttins(open_files, plot_selected, listbox, right_frame, average_histogram_label, plot_average_histogram):
+def gui_buttins(start_loading, plot_selected, listbox, right_frame, average_histogram_label, plot_average_histogram):
     plot_button = tk.Button(right_frame, text="Show Chart", command=lambda: plot_selected(listbox))
     plot_button.pack(pady=20, anchor='center')
 
@@ -163,5 +190,5 @@ def gui_buttins(open_files, plot_selected, listbox, right_frame, average_histogr
     separator = tk.Frame(right_frame, height=2, bd=1, relief=tk.SUNKEN)
     separator.pack(fill=tk.X, padx=5, pady=5)
 
-    open_button = tk.Button(right_frame, text="Load CSV Files", command=lambda: open_files(listbox, average_histogram_label))
+    open_button = tk.Button(right_frame, text="Load CSV Files", command=lambda: start_loading(listbox, average_histogram_label))
     open_button.pack(pady=0, side=tk.BOTTOM, anchor='center')
