@@ -12,36 +12,71 @@ from tkinter import filedialog
 
 class CSVFile:
     HEAD_INDEX_END = 24
+    HEAD_INDEX_END_1 = 3
     def __init__(self, path: str):
         self.path = path
+        self.is_new_file_flag = self.is_new_file()
         self.raw_data_head: dict = {}
-        self.raw_data: list = []
-        self.time_data: list = []
-
+        self.raw_volatage: list = []
+        self.raw_current: list = []
+        self.raw_time: list = []
+        
         self.raw_file = self.load_csv()
         self.full_name = None
         self.name = self.set_names()
 
-    def load_csv(self):
+    def is_new_file(self):
+        new_file = False
         with open(self.path, newline="") as csvfile:
             reader = csv.reader(csvfile, delimiter=",", quotechar='"')
             file = list(reader)
+
+            for index, row in enumerate(file):
+                if index == self.HEAD_INDEX_END_1:
+                    if row[0] is None:
+                        new_file = True
+                        break
+        return new_file
+
+    def load_csv(self):
         head = {}
         data = []
+        data1 = []
         time = []
-        for index, row in enumerate(file):
-            if index < self.HEAD_INDEX_END:
-                if row[0] in head:
-                    head[row[0]].append(row[1:])
-                else:
-                    head[row[0]] = row[1:][-1]
-            else:
-                if index > self.HEAD_INDEX_END:
+        
+        with open(self.path, newline="") as csvfile:
+            reader = csv.reader(csvfile, delimiter=",", quotechar='"')
+            file = list(reader)
+
+        if self.is_new_file_flag:
+                
+            for index, row in enumerate(file):
+                if index == 1:
+                    head[row[0].split(",")[0]] = None
+                elif index == 2:
+                    head[row[0].split(",")[0]] = None
+                if index > self.HEAD_INDEX_END_1:
                     time.append(float(row[0]))
                     data.append(float(row[1]))
+                    data1.append(float(row[2]))
+        else:
+            for index, row in enumerate(file):
+                if index < self.HEAD_INDEX_END:
+                    if row[0] in head:
+                        head[row[0]].append(row[1:])
+                    else:
+                        head[row[0]] = row[1:][-1]
+                else:
+                    if index > self.HEAD_INDEX_END:
+                        time.append(float(row[0]))
+                        data.append(float(row[1]))
+
         self.raw_data_head = head
-        self.raw_data = data 
-        self.time_data = time  
+        self.raw_data = data
+        self.raw_data1 = data1 
+        self.raw_time = time
+        self.is_new_file = is_new_file
+
         return file
     
     def set_names(self):
@@ -82,7 +117,7 @@ class LoadCSV(CSVFile, DataFiltr):
     def __init__(self, path: str):
         self.raw = CSVFile(path)
         self.data = deepcopy(self.raw.raw_data)
-        self.time_data = deepcopy(self.raw.time_data)
+        self.raw_time = deepcopy(self.raw.raw_time)
         self.voltage_flag = False
         self.current_flag = not self.voltage_flag
         self.frequency = self.set_frequency()
@@ -127,8 +162,8 @@ class LoadCSV(CSVFile, DataFiltr):
     def get_impuls_end_index(self, impulse) -> int:
         end = impulse['peak'] + self.get_average_impulse_len() * self.ENHANCE_END_INDEX
         end = end + self.CUSTOM_END_INDEX
-        if end > len(self.time_data):
-            return len(self.time_data) - 1
+        if end > len(self.raw_time):
+            return len(self.raw_time) - 1
         return end
     
     def set_impulses_indexies(self):
@@ -140,12 +175,12 @@ class LoadCSV(CSVFile, DataFiltr):
         smoothed_data = self.smoothed_voltage_data(self.voltage_flag)   
         plt.figure(figsize=(10, 5))
         #plt.plot(self.time_data, self.raw.raw_data, label='Raw Data', linestyle='--')
-        plt.plot(self.time_data, self.data, label='Filtered Data', linestyle='-')
-        plt.plot(self.time_data, smoothed_data, label='Smoothed Data_gausian')
+        plt.plot(self.raw_time, self.data, label='Filtered Data', linestyle='-')
+        plt.plot(self.raw_time, smoothed_data, label='Smoothed Data_gausian')
 
         for impulse in self.impulses:
-            plt.axvspan(self.time_data[impulse['start']],
-                        self.time_data[impulse['end']], color='red', alpha=0.3)
+            plt.axvspan(self.raw_time[impulse['start']],
+                        self.raw_time[impulse['end']], color='red', alpha=0.3)
         plt.xlabel('Time (s)')
         plt.ylabel('Value')
         plt.title(f'Data Plot for {self.name}')
@@ -169,9 +204,9 @@ class LoadCSV(CSVFile, DataFiltr):
                     while i < len(data) and data[i] < threshold:
                         i += 1
                     end_index = i
-                    length = self.time_data[end_index] - self.time_data[start_index]
+                    length = self.raw_time[end_index] - self.raw_time[start_index]
                     length_index = end_index - start_index
-                    impulses.append({'peak_time': self.time_data[start_index],
+                    impulses.append({'peak_time': self.raw_time[start_index],
                                      'time_length': length,
                                      'time_index_len': length_index,
                                      'peak': int(start_index),
@@ -192,7 +227,7 @@ class LoadCSV(CSVFile, DataFiltr):
         return self.data
     
     def get_time_data(self):
-        return self.time_data
+        return self.raw_time
 
     @property
     def name(self):
