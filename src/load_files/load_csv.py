@@ -4,9 +4,7 @@ from copy import deepcopy
 import csv
 import matplotlib.pyplot as plt
 
-from results.data_filtr import DataFiltr 
-import tkinter as tk
-from tkinter import filedialog
+from src.results.data_filtr import DataFiltr 
 
 
 
@@ -264,10 +262,10 @@ class LoadCSV(CSVFile, DataFiltr):
 
 
 class LoadCSVs:
-    def __init__(self, paths: list):
+    def __init__(self, paths: list,root, progress, label):
         self.paths = paths
         self.pairs: dict[str, dict[str, LoadCSV]] = {}
-        self.all_files: list[LoadCSV] = self.load_files()
+        self.all_files: list[LoadCSV] = self.load_files(root, progress, label)
         self.average_histogram = self.reset_histogram()
         self.set_max_current_in_impulses()
     
@@ -304,13 +302,17 @@ class LoadCSVs:
                 self.get_max_current_in_impulse(self.pairs[pair]['current'].data, impuls)
             self.pairs[pair]['voltage'].set_histogram()
         
-    def load_files(self):
+    def load_files(self, root, progress, label):
         files = []
-        for path in self.paths:
+        for i, path in enumerate(self.paths):
             file = LoadCSV(path)    
             self.set_pairs(file)
             files.append(file)
+            progress['value'] = (i + 1) / len(self.paths) * 100 
+            label.config(text=f"Loading {file.raw.full_name}...")
+            root.update_idletasks() 
         self.check_pairs()
+        label.config(text="Loading Complete!")
 
         return files
     
