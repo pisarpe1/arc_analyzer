@@ -173,14 +173,14 @@ class LoadCSV(ParserPicoScopeCSV, ParseGwInsteakCSV, DataFiltr):
 
     def raw_load(self, path: str):
         if self.file_source == Enum_input_source.GwInstek:
-            file = ParseGwInsteakCSV(path)
+            file = ParseGwInsteakCSV(path, self.file_source)
             self.voltage_flag = file.data_type_voltage()
             self.current_flag = not self.voltage_flag
             return file
         else:
             self.voltage_flag = True
             self.current_flag = True
-            return ParserPicoScopeCSV(path)
+            return ParserPicoScopeCSV(path, self.file_source)
 
 
 class LoadCSVs:

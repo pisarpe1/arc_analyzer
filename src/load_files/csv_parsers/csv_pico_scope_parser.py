@@ -3,8 +3,8 @@ from src.load_files.csv_parsers.csv_parser import CSVFileParser
 
 
 class ParserPicoScopeCSV(CSVFileParser):
-    def __init__(self, file_path):
-        super().__init__(file_path)
+    def __init__(self, file_path, source_type):
+        super().__init__(file_path, source_type)
         self._data["voltage"] = []
         self._data["current"] = []
         self.set_name()

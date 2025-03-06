@@ -22,11 +22,11 @@ def get_csv_source(path: str) -> Enum_input_source:
 class CSVFileParser(metaclass=abc.ABCMeta):
     def __init__(self, path: str, type: Enum_input_source):
         self._path = path
-        self._type = get_csv_source(path)
+        self._type = type
         self._full_name = self._path.split("/")[-1]
         self._name = self.set_name()
 
-        self._head_index: int = type.value
+        self._head_index: int = type
 
         self._head: dict[str, str] = {}
         self._data: dict[str, list] = {"time": [],

@@ -3,10 +3,9 @@ from src.load_files.csv_parsers.csv_parser import CSVFileParser
 
 
 class ParseGwInsteakCSV(CSVFileParser):
-    def __init__(self, file_path):
-        super().__init__(file_path)
+    def __init__(self, file_path, source_type):
+        super().__init__(file_path, source_type)
         self._voltage_flag = False
-        self.set_name()
         self.raw_data = self.parse_file()
 
     def parse_file(self):
@@ -15,9 +14,9 @@ class ParseGwInsteakCSV(CSVFileParser):
             file = list(reader)
 
         for index, row in enumerate(file):
-            if index < self.type_index:
+            if index < self.head_index:
                 self.parse_head(row)
-            elif index == self.type_index:
+            elif index == self.head_index:
                 self.data_type_voltage()
             else:
                 self.parse_data(row)
@@ -35,10 +34,10 @@ class ParseGwInsteakCSV(CSVFileParser):
         """
 
         if self.head["Vertical Units"] == "V":
-            self._data["voltage"] == []
+            self._data["voltage"] = []
             self._voltage_flag = True
         elif self.head["Vertical Units"] == "A":
-            self._data["current"] == []
+            self._data["current"] = []
             self._voltage_flag = False
         else:
             raise ValueError(
@@ -46,20 +45,23 @@ class ParseGwInsteakCSV(CSVFileParser):
             )
 
     def parse_head(self, row):
-        if row[0] in self.head:
-            self.head[row[0]].append(row[1:])
-        else:
-            self.head[row[0]] = row[1:][-1]
+        try:
+            if row[0] in self.head:
+                self.head[row[0]].append(row[1:])
+            else:
+                self.head[row[0]] = row[1:][-1]
+        except IndexError:
+            self.head[row[0]] = None
 
     def parse_data(self, row):
-        self.data["time"].append(float(row[0]))
+        self._data["time"].append(float(row[0]))
         if self._voltage_flag == True:
             self._data["voltage"].append(float(row[1]))
         else:
             self._data["current"].append(float(row[1]))
 
     def set_name(self):
-        self.name = self.full_name[0:-5]
+        return self.full_name[0:-5]
 
 class DataType(enumerate):
     V = '[V]'
