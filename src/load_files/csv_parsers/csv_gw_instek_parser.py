@@ -7,7 +7,7 @@ class ParseGwInsteakCSV(CSVFileParser):
         super().__init__(file_path)
         self._voltage_flag = False
         self.set_name()
-        self.parse_file()
+        self.raw_data = self.parse_file()
 
     def parse_file(self):
         with open(self.path, newline="") as csvfile:
@@ -21,6 +21,7 @@ class ParseGwInsteakCSV(CSVFileParser):
                 self.data_type_voltage()
             else:
                 self.parse_data(row)
+        return file
 
     def data_type_voltage(self):
         """
@@ -59,3 +60,9 @@ class ParseGwInsteakCSV(CSVFileParser):
 
     def set_name(self):
         self.name = self.full_name[0:-5]
+
+class DataType(enumerate):
+    V = '[V]'
+    A = '[A]'
+    S = '[s]'
+    Hz = '[Hz]'

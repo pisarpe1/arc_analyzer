@@ -1,15 +1,84 @@
 
 
 from copy import deepcopy
+import csv
 import matplotlib.pyplot as plt
 
-from src.load_files.csv_parsers.Enum_file_types import Enum_input_source
-from src.load_files.csv_parsers.csv_parser import get_csv_source
 from src.results.data_filtr import DataFiltr 
-from src.load_files.csv_parsers.csv_pico_scope_parser import ParserPicoScopeCSV
-from src.load_files.csv_parsers.csv_gw_instek_parser import ParseGwInsteakCSV
 
-class LoadCSV(ParserPicoScopeCSV, ParseGwInsteakCSV, DataFiltr):
+
+
+class CSVFile:
+    HEAD_INDEX_END = 24
+    HEAD_INDEX_END_1 = 3
+    def __init__(self, path: str):
+        self.path = path
+        self.raw_data_head: dict = {}
+        self.raw_volatage: list = []
+        self.raw_current: list = []
+        self.raw_time: list = []
+        
+        self.raw_file = self.load_csv()
+        self.full_name = None
+        self.name = self.set_names()
+
+
+    def load_csv(self):
+        head = {}
+        data = []
+        data1 = []
+        time = []
+        
+        with open(self.path, newline="") as csvfile:
+            reader = csv.reader(csvfile, delimiter=",", quotechar='"')
+            file = list(reader)
+
+        if self.is_new_file_flag:
+                
+            for index, row in enumerate(file):
+                if index == 1:
+                    head[row[0].split(",")[0]] = None
+                elif index == 2:
+                    head[row[0].split(",")[0]] = None
+                if index > self.HEAD_INDEX_END_1:
+                    time.append(float(row[0]))
+                    data.append(float(row[1]))
+                    data1.append(float(row[2]))
+        else:
+            for index, row in enumerate(file):
+                if index < self.HEAD_INDEX_END:
+                    if row[0] in head:
+                        head[row[0]].append(row[1:])
+                    else:
+                        head[row[0]] = row[1:][-1]
+                else:
+                    if index > self.HEAD_INDEX_END:
+                        time.append(float(row[0]))
+                        data.append(float(row[1]))
+
+        self.raw_data_head = head
+        self.raw_data = data
+        self.raw_data1 = data1 
+        self.raw_time = time
+
+        return file
+    
+    def set_names(self):
+        self.full_name = self.path.split('/')[-1]
+        return self.full_name[0:-5]
+    
+    def get_full_head(self):
+        return self.raw_data_head
+
+    def get_name(self) -> str:
+        return self.name
+    
+    def get_path(self) -> str:
+        return self.path
+
+
+
+class LoadCSV(CSVFile, DataFiltr):
 
     # frek = 100Hz
     # osciloskop 10 dilku na obrazovce x
@@ -24,13 +93,12 @@ class LoadCSV(ParserPicoScopeCSV, ParseGwInsteakCSV, DataFiltr):
     ENHANCE_END_INDEX = 5
     CUSTOM_END_INDEX = 0
 
-    
-
     def __init__(self, path: str):
-        self.file_source: Enum_input_source = get_csv_source(path)
-        self.raw = self.raw_load(path)
+        self.raw = CSVFile(path)
         self.data = deepcopy(self.raw.raw_data)
         self.raw_time = deepcopy(self.raw.raw_time)
+        self.voltage_flag = False
+        self.current_flag = not self.voltage_flag
         self.frequency = self.set_frequency()
         self.current_histogram = self.reset_histogram()
         self.set_flag()
@@ -164,23 +232,14 @@ class LoadCSV(ParserPicoScopeCSV, ParseGwInsteakCSV, DataFiltr):
         return self.raw.raw_data_head['Time']
     
     def filter_data(self):
-        if self.voltage_flag    :
+        if self.voltage_flag:
             new_vals = [self.filter_positive(value) for value in self.data]
         else:
             new_vals =  [self.filter_negative(value) for value in self.data]
         new_vals = self.noise_to_zero(new_vals)
         self.data = new_vals
 
-    def raw_load(self, path: str):
-        if self.file_source == Enum_input_source.GwInstek:
-            file = ParseGwInsteakCSV(path)
-            self.voltage_flag = file.data_type_voltage()
-            self.current_flag = not self.voltage_flag
-            return file
-        else:
-            self.voltage_flag = True
-            self.current_flag = True
-            return ParserPicoScopeCSV(path)
+
 
 
 class LoadCSVs:

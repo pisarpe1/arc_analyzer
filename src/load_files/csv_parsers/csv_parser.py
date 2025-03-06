@@ -5,21 +5,20 @@ from src.load_files.csv_parsers.Enum_file_types import Enum_input_source
 import csv
 
 def get_csv_source(path: str) -> Enum_input_source:
-    empty_row: int = -1
+    empty_row: int = Enum_input_source.GwInstek
     with open(path, newline='') as csvfile:
         reader = csv.reader(csvfile)
         for i, row in enumerate(reader):
-            if not any(row):  # Check if the row is empty
+            if row[0] is None or row[0] == 'Waveform Data':  # Check if the row is empty
                 empty_row = i
-                print(empty_row)
                 break
-    if empty_row ==  Enum_input_source.GwInstek.value: 
+    if empty_row ==  Enum_input_source.GwInstek: 
         return Enum_input_source.GwInstek
-    if empty_row ==  Enum_input_source.PicoScope.value:
+    if empty_row ==  Enum_input_source.PicoScope:
         return Enum_input_source.PicoScope
     else:
         raise ValueError("The file is not a valid source")
-
+ 
 class CSVFileParser(metaclass=abc.ABCMeta):
     def __init__(self, path: str, type: Enum_input_source):
         self._path = path
