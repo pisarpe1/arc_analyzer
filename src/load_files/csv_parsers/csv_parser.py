@@ -12,6 +12,7 @@ def get_csv_source(path: str) -> Enum_input_source:
             if row[0] is None or row[0] == 'Waveform Data':  # Check if the row is empty
                 empty_row = i
                 break
+
     if empty_row ==  Enum_input_source.GwInstek: 
         return Enum_input_source.GwInstek
     if empty_row ==  Enum_input_source.PicoScope:

@@ -29,17 +29,24 @@ class LoadCSV(ParserPicoScopeCSV, ParseGwInsteakCSV, DataFiltr):
     def __init__(self, path: str):
         self.file_source: Enum_input_source = get_csv_source(path)
         self.raw = self.raw_load(path)
-        self.data = deepcopy(self.raw.raw_data)
-        self.raw_time = deepcopy(self.raw.raw_time)
-        self.frequency = self.set_frequency()
-        self.current_histogram = self.reset_histogram()
-        self.set_flag()
-        self.filter_data()
+        if type(self.raw) == ParserPicoScopeCSV:
+            pass
+        elif type(self.raw) == ParseGwInsteakCSV:
+            if self.raw._voltage_flag:    
+                self.data = deepcopy(self.raw._data["voltage"])
+            else:
+                self.data = deepcopy(self.raw._data["current"])
 
-        self.impulses = []
-        if self.voltage_flag:
-            self.impulses = self.find_impulses()
-            self.set_impulses_indexies()
+            self.raw_time = deepcopy(self.raw._data["time"])
+            self.frequency = self.set_frequency()
+            self.current_histogram = self.reset_histogram()
+            self.set_flag()
+            self.filter_data()
+
+            self.impulses = []
+            if self.voltage_flag:
+                self.impulses = self.find_impulses()
+                self.set_impulses_indexies()
 
     def reset_histogram(self):
         self.current_histogram = { '0-3 A': 0,
@@ -142,13 +149,13 @@ class LoadCSV(ParserPicoScopeCSV, ParseGwInsteakCSV, DataFiltr):
 
     @property
     def name(self):
-        return self.raw.get_name()
+        return self.raw.name
     
     def get_impulses(self):
         return self.impulses
 
     def set_flag(self):
-        if self.raw.raw_data_head['Vertical Units'] == 'V':
+        if self.raw.head['Vertical Units'] == 'V':
             self.voltage_flag = True
             self.current_flag = not self.voltage_flag
         else:
@@ -157,11 +164,11 @@ class LoadCSV(ParserPicoScopeCSV, ParseGwInsteakCSV, DataFiltr):
 
     def set_frequency(self):
         """Return frequency of the signal in Hz"""
-        return 1 / float(self.raw.raw_data_head['Sampling Period'])
+        return 1 / float(self.raw.head['Sampling Period'])
 
     def time(self):
         """Return time in seconds"""
-        return self.raw.raw_data_head['Time']
+        return self.raw.head['Time']
     
     def filter_data(self):
         if self.voltage_flag    :
@@ -174,7 +181,7 @@ class LoadCSV(ParserPicoScopeCSV, ParseGwInsteakCSV, DataFiltr):
     def raw_load(self, path: str):
         if self.file_source == Enum_input_source.GwInstek:
             file = ParseGwInsteakCSV(path, self.file_source)
-            self.voltage_flag = file.data_type_voltage()
+            self.voltage_flag = file._voltage_flag
             self.current_flag = not self.voltage_flag
             return file
         else:

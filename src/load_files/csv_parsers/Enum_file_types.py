@@ -1,5 +1,5 @@
 
 
 class Enum_input_source(enumerate):
-    GwInstek = 25
+    GwInstek = 24
     PicoScope = 3

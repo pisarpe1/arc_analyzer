@@ -16,9 +16,9 @@ class ParseGwInsteakCSV(CSVFileParser):
         for index, row in enumerate(file):
             if index < self.head_index:
                 self.parse_head(row)
-            elif index == self.head_index:
+            if index == self.head_index:
                 self.data_type_voltage()
-            else:
+            if index > self.head_index:
                 self.parse_data(row)
         return file
 
@@ -59,6 +59,8 @@ class ParseGwInsteakCSV(CSVFileParser):
             self._data["voltage"].append(float(row[1]))
         else:
             self._data["current"].append(float(row[1]))
+        
+        
 
     def set_name(self):
         return self.full_name[0:-5]
