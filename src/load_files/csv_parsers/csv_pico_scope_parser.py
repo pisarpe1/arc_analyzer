@@ -12,7 +12,7 @@ class ParserPicoScopeCSV(CSVFileParser):
 
 
     def set_name(self):
-        self.name = self.full_name[0:-4]
+        self._name = self.full_name[0:-4]
 
     def parse_head(self,file):
         labels = file[0]
@@ -21,9 +21,9 @@ class ParserPicoScopeCSV(CSVFileParser):
             self._head[labels[i]] = units[i]
         
     def parse_data(self, row):
-        self.data["time"].append(float(row[0]))
-        self.data["voltage"].append(float(row[1]))  # Voltage
-        self.data["current"].append(float(row[2]))  # Current
+        self._data["time"].append(float(row[0]))
+        self._data["voltage"].append(float(row[1]))  # Voltage
+        self._data["current"].append(float(row[2]))  # Current
 
     def parse_file(self):
         with open(self.path, newline="") as csvfile:
@@ -32,7 +32,7 @@ class ParserPicoScopeCSV(CSVFileParser):
             self.parse_head(file[:2])
 
         for index, row in enumerate(file):
-                if index > self.type_index:
+                if index > self._head_index:
                     self.parse_data(row)
                 else:
                     continue

@@ -151,7 +151,7 @@ class LoadCSV(CSVFile, DataFiltr):
             impulse['end'] = self.get_impuls_end_index(impulse)
 
     def plot_data(self):
-        smoothed_data = self.smoothed_voltage_data(self.voltage_flag)   
+        smoothed_data = self.smoothed_voltage_data(self.data, self.voltage_flag)   
         plt.figure(figsize=(10, 5))
         #plt.plot(self.time_data, self.raw.raw_data, label='Raw Data', linestyle='--')
         plt.plot(self.raw_time, self.data, label='Filtered Data', linestyle='-')

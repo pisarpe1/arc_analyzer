@@ -29,11 +29,53 @@ class LoadCSV(ParserPicoScopeCSV, ParseGwInsteakCSV, DataFiltr):
     def __init__(self, path: str):
         self.file_source: Enum_input_source = get_csv_source(path)
         self.raw = self.raw_load(path)
+        self.impulses = []
+        self.current_histogram = self.reset_histogram()
+
         if type(self.raw) == ParserPicoScopeCSV:
-            pass
+            self.data = {"voltage": deepcopy(self.raw._data["voltage"]),
+                         "current": deepcopy(self.raw._data["current"])}
+            self.raw_time = deepcopy(self.raw._data["time"])
+            self.current_histogram = self.reset_histogram()
+
+            # Apply offset to voltage and current data to be near zero
+            voltage_offset = sum(self.data["voltage"]) / len(self.data["voltage"])
+            current_offset = sum(self.data["current"]) / len(self.data["current"])
+
+    
+            self.data["voltage"] = [0 if -0.2 <= v - voltage_offset <= 0.2 else v - voltage_offset for v in self.data["voltage"]]
+            self.data["current"] = [0 if c - current_offset < 2 else c - current_offset for c in self.data["current"]]
+
+            self.data["smooth_voltage"] = self.smoothed_voltage_data(self.data["voltage"],  self.voltage_flag)
+            self.data["smooth_voltage"] = [-1 if v < -0.3 else 0 for v in self.data["smooth_voltage"]]
+            
+
+            self.impulses = self.get_pico_scope_intervals(data=self.data["smooth_voltage"])
+            print(len(self.impulses))
+            
+            self.set_impulses_indexies()
+            print(len(self.impulses))
+
+
+            """plt.figure(figsize=(10, 5))
+            plt.plot(self.raw_time, self.data["current"], label='Current Data', linestyle='-')
+            plt.plot(self.raw_time, self.data["voltage"], label='Voltage Data', linestyle='-')
+            plt.plot(self.raw_time, self.data["smooth_voltage"], label='Voltage Data', linestyle='-')
+            for impulse in self.impulses:
+                plt.axvspan(self.raw_time[impulse['start']], self.raw_time[impulse['end']], color='red', alpha=0.3)
+            plt.xlabel('Time (s)')
+            plt.ylabel('Current (A)')
+            plt.title('Current Data Plot')
+            plt.legend()
+            plt.grid(True)  
+            plt.show()"""
+
+            self.set_flag()
+            
         elif type(self.raw) == ParseGwInsteakCSV:
             if self.raw._voltage_flag:    
                 self.data = deepcopy(self.raw._data["voltage"])
+                self.data["smooth_voltage"] = self.smoothed_voltage_data(self.data["voltage"],  self.voltage_flag)
             else:
                 self.data = deepcopy(self.raw._data["current"])
 
@@ -43,10 +85,41 @@ class LoadCSV(ParserPicoScopeCSV, ParseGwInsteakCSV, DataFiltr):
             self.set_flag()
             self.filter_data()
 
-            self.impulses = []
-            if self.voltage_flag:
-                self.impulses = self.find_impulses()
+
+            if self.raw._voltage_flag:
+                
+                self.impulses = self.find_impulses(self.data)
                 self.set_impulses_indexies()
+
+    def get_pico_scope_intervals(self, data):
+        impulses = []
+        i = 0
+        while i < len(data):
+            if data[i] == -1:
+                start_index = i
+                while i < len(data) and data[i] == -1:
+                    i += 1
+                end_index = i
+                length = self.raw_time[end_index] - self.raw_time[start_index]
+                length_index = end_index - start_index
+                impulses.append({'peak_time': self.raw_time[start_index],
+                                'start': start_index,
+                                'end': end_index,
+                                'time_length': length,
+                                'time_index_len': length_index,
+                                'peak': int(start_index),
+                                'max_current': max(self.data["current"][start_index:end_index]),
+                                })
+            else:
+                i += 1
+        if len(impulses) != 100:
+            if  len(impulses) == 200:
+                pass
+            else:
+                print(f"Warning: Expected 100 pulses, but found {len(impulses)}")
+
+        return impulses
+        
 
     def reset_histogram(self):
         self.current_histogram = { '0-3 A': 0,
@@ -112,9 +185,8 @@ class LoadCSV(ParserPicoScopeCSV, ParseGwInsteakCSV, DataFiltr):
 
         return average 
 
-    def find_impulses(self, threshold=-100, min_distance=1000):
+    def find_impulses(self, data, threshold=-100, min_distance=1000):
         impulses = []
-        data = self.smoothed_voltage_data(self.voltage_flag)
         for i in range(1, len(data)):
             if data[i] < threshold and data[i] < data[i - 1] and (i + 1 < len(data) and data[i] < data[i + 1]):
                 if not impulses or (i - impulses[-1]['peak_time'] > min_distance):
@@ -155,12 +227,16 @@ class LoadCSV(ParserPicoScopeCSV, ParseGwInsteakCSV, DataFiltr):
         return self.impulses
 
     def set_flag(self):
-        if self.raw.head['Vertical Units'] == 'V':
+        if type(self.raw) == ParserPicoScopeCSV:
             self.voltage_flag = True
-            self.current_flag = not self.voltage_flag
+            self.current_flag = self.voltage_flag
         else:
-            self.voltage_flag = False
-            self.current_flag = not self.voltage_flag
+            if self.raw.head['Vertical Units'] == 'V':
+                self.voltage_flag = True
+                self.current_flag = not self.voltage_flag
+            else:
+                self.voltage_flag = False
+                self.current_flag = not self.voltage_flag
 
     def set_frequency(self):
         """Return frequency of the signal in Hz"""
@@ -171,7 +247,7 @@ class LoadCSV(ParserPicoScopeCSV, ParseGwInsteakCSV, DataFiltr):
         return self.raw.head['Time']
     
     def filter_data(self):
-        if self.voltage_flag    :
+        if self.voltage_flag:
             new_vals = [self.filter_positive(value) for value in self.data]
         else:
             new_vals =  [self.filter_negative(value) for value in self.data]
@@ -194,6 +270,7 @@ class LoadCSVs:
     def __init__(self, paths: list,root, progress, label):
         self.paths = paths
         self.pairs: dict[str, dict[str, LoadCSV]] = {}
+        self.full_files = {}
         self.all_files: list[LoadCSV] = self.load_files(root, progress, label)
         self.average_histogram = self.reset_histogram()
         self.set_max_current_in_impulses()
@@ -206,6 +283,20 @@ class LoadCSVs:
         '120+ A': 0}
         return self.average_histogram
     
+    def set_histogram(self):
+        self.current_histogram = self.reset_histogram()
+        for impulse in self.impulses:
+            if impulse['max_current'] < 3:
+                self.current_histogram['0-3 A'] += 1
+            elif impulse['max_current'] < 50:
+                self.current_histogram['0-50 A'] += 1
+            elif impulse['max_current'] < 80:
+                self.current_histogram['50-80 A'] += 1
+            elif impulse['max_current'] < 120:
+                self.current_histogram['80-120 A'] += 1
+            else:
+                self.current_histogram['120+ A'] += 1
+    
     def get_average_histogram(self):
         print(self.average_histogram)
         return self.average_histogram
@@ -215,11 +306,18 @@ class LoadCSVs:
         valid_files = 0 
         for key in self.pairs.keys():
             print(key ,self.pairs[key]['voltage'].current_histogram)
-            if self.pairs[key]['voltage'].current_histogram['0-3 A'] != 100:
+            if self.pairs[key]['voltage'].current_histogram['0-3 A'] != 100 or self.pairs[key]['voltage'].current_histogram['0-3 A'] != 200:
                 for range in self.pairs[key]['voltage'].current_histogram:
                     self.average_histogram[range] += self.pairs[key]['voltage'].current_histogram[range]
-                valid_files += 1         
-        print(valid_files)
+                valid_files += 1 
+
+        for key in self.full_files.keys():
+            print(key, self.full_files[key].current_histogram)
+            if self.full_files[key].current_histogram['0-3 A'] != 100 or self.full_files[key].current_histogram['0-3 A'] != 200:
+                for range in self.full_files[key].current_histogram:
+                    self.average_histogram[range] += self.full_files[key].current_histogram[range]
+            valid_files += 1
+
         for range in self.average_histogram:
             self.average_histogram[range] = round(self.average_histogram[range] / valid_files, 1)
         self.get_average_histogram()
@@ -230,12 +328,18 @@ class LoadCSVs:
             for impuls in self.pairs[pair]['voltage'].impulses:
                 self.get_max_current_in_impulse(self.pairs[pair]['current'].data, impuls)
             self.pairs[pair]['voltage'].set_histogram()
-        
+
+        for key in self.full_files.keys():
+            self.full_files[key].set_histogram()
+    
     def load_files(self, root, progress, label):
         files = []
         for i, path in enumerate(self.paths):
-            file = LoadCSV(path)    
-            self.set_pairs(file)
+            file = LoadCSV(path)
+            if type(file.raw) == ParseGwInsteakCSV:  
+                self.set_pairs(file)
+            else:
+                self.full_files[file.name] = file
             files.append(file)
             progress['value'] = (i + 1) / len(self.paths) * 100 
             label.config(text=f"Loading {file.raw.full_name}...")
@@ -249,13 +353,20 @@ class LoadCSVs:
         impulse['max_current'] = max(current[impulse['start']:impulse['end']])
 
     def plot_measurements(self, key):
-        voltage = self.pairs[key]['voltage']
-        current = self.pairs[key]['current']
-        plot = None
-        if voltage is not None:
+        if key in self.pairs.keys():
+            voltage = self.pairs[key]['voltage']
+            current = self.pairs[key]['current']
+            plot = None
+            if voltage is not None:
+                plot  = voltage.plot_data()
+            if current is not None:
+                plot.plot(current.get_time_data(), current.get_data(), label='Current Data', linestyle='-')
+        else:
+            voltage = self.full_files[key].data["voltage"] 
+            current = self.full_files[key].data['current']
             plot  = voltage.plot_data()
-        if current is not None:
-            plot.plot(current.get_time_data(), current.get_data(), label='Current Data', linestyle='-')
+            plot.plot(self.full_files[key].data['time'], current, label='Current Data', linestyle='-')
+
         plot.xlabel('Time [s]')
         plot.ylabel('Value [V]; [A]')
         plot.title(f'{key}')
@@ -267,18 +378,6 @@ class LoadCSVs:
         plot.axhline(y=120, color='blue', linestyle='--', linewidth=0.3, label='120 A')
         plot.show()
 
-    def plot_histogram(self, key):
-        histogram = self.pairs[key]['voltage'].current_histogram
-        categories = list(histogram.keys())
-        values = list(histogram.values())
-
-        plt.figure(figsize=(10, 5))
-        plt.bar(categories, values, color='skyblue')
-        plt.xlabel('Current Range')
-        plt.ylabel('Frequency')
-        plt.title(f'Current Histogram for {key}')
-        plt.grid(axis='y')
-        plt.show()
 
     def plot_average_histogram(self):
         categories = list(self.average_histogram.keys())
@@ -290,6 +389,11 @@ class LoadCSVs:
         # Plot each individual histogram
         for key in self.pairs.keys():
             histogram = self.pairs[key]['voltage'].current_histogram
+            values = list(histogram.values())
+            plt.plot(categories, values, marker='o', linestyle='-', label=f'{key} Histogram')
+
+        for key in self.full_files.keys():
+            histogram = self.full_files[key].current_histogram
             values = list(histogram.values())
             plt.plot(categories, values, marker='o', linestyle='-', label=f'{key} Histogram')
 

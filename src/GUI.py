@@ -81,7 +81,12 @@ def output_values_and_plot():
     def on_select(event, listbox, histogram_label):
         if listbox.curselection():
             selected_key = listbox.get(listbox.curselection())
-            histogram = load_csvs_instance.pairs[selected_key]['voltage'].current_histogram
+            if selected_key in load_csvs_instance.pairs:
+                histogram = load_csvs_instance.pairs[selected_key]['voltage'].current_histogram
+            elif selected_key in load_csvs_instance.full_files:
+                histogram = load_csvs_instance.full_files[selected_key].current_histogram
+            else:
+                histogram = {}
             histogram_text = "\n".join([f"{k:<10}: {v:>5}" for k, v in histogram.items()])
             histogram_label.config(text=f"{selected_key} Current Histogram\n\n" + histogram_text)
 
@@ -164,6 +169,15 @@ def output_values_and_plot():
                 listbox.insert(tk.END, key)
                 listbox.itemconfig(tk.END, {'fg': 'yellow'})
             elif len(load_csvs_instance.pairs[key]['voltage'].impulses) != 100 and len(load_csvs_instance.pairs[key]['voltage'].impulses) != 200:
+                listbox.insert(tk.END, key)
+                listbox.itemconfig(tk.END, {'fg': 'red'})
+            else:
+                listbox.insert(tk.END, key)
+        for key in load_csvs_instance.full_files.keys():
+            if load_csvs_instance.full_files[key].current_histogram.get('0-3 A') == 100 or load_csvs_instance.full_files[key].current_histogram.get('0-3 A') == 200:
+                listbox.insert(tk.END, key)
+                listbox.itemconfig(tk.END, {'fg': 'yellow'})
+            elif len(load_csvs_instance.full_files[key].impulses) != 100 and len(load_csvs_instance.full_files[key].impulses) != 200:
                 listbox.insert(tk.END, key)
                 listbox.itemconfig(tk.END, {'fg': 'red'})
             else:

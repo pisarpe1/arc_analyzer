@@ -9,6 +9,10 @@ def get_csv_source(path: str) -> Enum_input_source:
     with open(path, newline='') as csvfile:
         reader = csv.reader(csvfile)
         for i, row in enumerate(reader):
+            if not row :  # Check if the row is empty
+                empty_row = i
+                break
+
             if row[0] is None or row[0] == 'Waveform Data':  # Check if the row is empty
                 empty_row = i
                 break

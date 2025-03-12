@@ -9,14 +9,14 @@ class DataFiltr:
     def __init__(self, data):
         self.data = data
 
-    def smoothed_voltage_data(self, flag) -> list:
+    def smoothed_voltage_data(self, data, flag) -> list:
         """
         Smoothing the data.
         """
         if flag:
-            smoothed_data = gaussian_filter(self.data, sigma=30)
+            smoothed_data = gaussian_filter(data, sigma=30)
         else:
-            smoothed_data = self.data  
+            smoothed_data = data  
         return smoothed_data
 
     def noise_to_zero(self, file) -> list:
