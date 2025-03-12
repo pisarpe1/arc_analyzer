@@ -51,24 +51,8 @@ class LoadCSV(ParserPicoScopeCSV, ParseGwInsteakCSV, DataFiltr):
             
 
             self.impulses = self.get_pico_scope_intervals(data=self.data["smooth_voltage"])
-            print(len(self.impulses))
             
             self.set_impulses_indexies()
-            print(len(self.impulses))
-
-
-            """plt.figure(figsize=(10, 5))
-            plt.plot(self.raw_time, self.data["current"], label='Current Data', linestyle='-')
-            plt.plot(self.raw_time, self.data["voltage"], label='Voltage Data', linestyle='-')
-            plt.plot(self.raw_time, self.data["smooth_voltage"], label='Voltage Data', linestyle='-')
-            for impulse in self.impulses:
-                plt.axvspan(self.raw_time[impulse['start']], self.raw_time[impulse['end']], color='red', alpha=0.3)
-            plt.xlabel('Time (s)')
-            plt.ylabel('Current (A)')
-            plt.title('Current Data Plot')
-            plt.legend()
-            plt.grid(True)  
-            plt.show()"""
 
             self.set_flag()
             
@@ -163,20 +147,34 @@ class LoadCSV(ParserPicoScopeCSV, ParseGwInsteakCSV, DataFiltr):
             impulse['end'] = self.get_impuls_end_index(impulse)
 
     def plot_data(self):
-        smoothed_data = self.smoothed_voltage_data(self.voltage_flag)   
-        plt.figure(figsize=(10, 5))
-        #plt.plot(self.time_data, self.raw.raw_data, label='Raw Data', linestyle='--')
-        plt.plot(self.raw_time, self.data, label='Filtered Data', linestyle='-')
-        plt.plot(self.raw_time, smoothed_data, label='Smoothed Data_gausian')
+        if type(self.raw) == ParseGwInsteakCSV:
+            smoothed_data = self.smoothed_voltage_data(self.voltage_flag)   
+            plt.figure(figsize=(10, 5))
+            #plt.plot(self.time_data, self.raw.raw_data, label='Raw Data', linestyle='--')
+            plt.plot(self.raw_time, self.data, label='Filtered Data', linestyle='-')
+            plt.plot(self.raw_time, smoothed_data, label='Smoothed Data_gausian')
 
-        for impulse in self.impulses:
-            plt.axvspan(self.raw_time[impulse['start']],
-                        self.raw_time[impulse['end']], color='red', alpha=0.3)
-        plt.xlabel('Time (s)')
-        plt.ylabel('Value')
-        plt.title(f'Data Plot for {self.name}')
-        plt.legend()
-        plt.grid(True)
+            for impulse in self.impulses:
+                plt.axvspan(self.raw_time[impulse['start']],
+                            self.raw_time[impulse['end']], color='red', alpha=0.3)
+            plt.xlabel('Time (s)')
+            plt.ylabel('Value')
+            plt.title(f'Data Plot for {self.name}')
+            plt.legend()
+            plt.grid(True)
+        else:
+            plt.figure(figsize=(10, 5))
+            plt.plot(self.raw_time, self.data["current"], label='Current Data', linestyle='-')
+            plt.plot(self.raw_time, self.data["voltage"], label='Voltage Data', linestyle='-')
+            plt.plot(self.raw_time, self.data["smooth_voltage"], label='Pulses', linestyle='-')
+            for impulse in self.impulses:
+                plt.axvspan(self.raw_time[impulse['start']], self.raw_time[impulse['end']], color='red', alpha=0.3)
+            plt.xlabel('Time (s)')
+            plt.ylabel('Value')
+            plt.title(f'Data Plot for {self.name}')
+            plt.legend()
+            plt.grid(True)  
+            plt.show()
 
         return plt
     
@@ -364,7 +362,7 @@ class LoadCSVs:
         else:
             voltage = self.full_files[key].data["voltage"] 
             current = self.full_files[key].data['current']
-            plot  = voltage.plot_data()
+            plot  = self.full_files[key].plot_data()
             plot.plot(self.full_files[key].data['time'], current, label='Current Data', linestyle='-')
 
         plot.xlabel('Time [s]')
