@@ -88,11 +88,11 @@ class LoadCSV(ParserPicoScopeCSV, ParseGwInsteakCSV, DataFiltr):
                 length_index = end_index - start_index
                 impulses.append({'peak_time': self.raw_time[start_index],
                                 'start': start_index,
-                                'end': end_index,
+                                'end': end_index + length_index,
                                 'time_length': length,
                                 'time_index_len': length_index,
                                 'peak': int(start_index),
-                                'max_current': max(self.data["current"][start_index:end_index]),
+                                'max_current': max(self.data["current"][start_index:end_index + length_index]),
                                 })
             else:
                 i += 1
